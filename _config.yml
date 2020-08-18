@@ -44,7 +44,7 @@ page_layout: page
 titlecase: true
 
 showBuyCoffee: true
-payImage: //qpluspicture.oss-cn-beijing.aliyuncs.com/ruosWu/r1KYBg.jpg
+payImage: //github-blog-1302744225.cos.ap-chongqing.myqcloud.com/io.blog/wx_paymecoffee.png?q-sign-algorithm=sha1&q-ak=AKIDJ3dKQ2xnde6cLrIzQh7LZhxX8bz5A2egYBIsGNFjc_iTFtLR74mC8fm0y_xoWuNV&q-sign-time=1597742784;1597746384&q-key-time=1597742784;1597746384&q-header-list=&q-url-param-list=&q-signature=dc5fbabb1f184da8f2854460479f4918ec462048&x-cos-security-token=dfeRQcI9H4trPmTjM9Uxsqy9z91KAg8Oe356f6723e6f6d1c2716f77d1231b136u4xgvCzNvq3NBrI1T8CiHZ7s1nljLzMmFc7fRNHM931hEr4ZP6_M96ot-oEDF9-V1wq0c92zLRjV-W0q-wWjfnREICHAIQDiwDgccnTmrtaMqc9w2oGYk2vhW9ogAnA7zU0-osFQWbOLlLVHxwMXECeSYAOGfDn0dXYm5GTu414
 
 include: [".htaccess"]
 exclude: ["Gemfile", "Gemfile.lock", "README.md", "LICENSE", "package.json","node_modules"]
