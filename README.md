@@ -19,6 +19,7 @@
 - When running in PC,It will show a QRcode that you can read on mobile.
 - When the picture in articles is **too complicated to see it clearly，you can zoom it in full-screen.** .
 - Funny [custom 404 page](https://blog.leeky.top/err),You will like it.
+- **Gitalk** is a comment system which is based on GitHub Issues.Users can comment,view,like and sign up.It's helpful for GitHub Pages or blog to comment.
 - **More suitable for China**:
 
   - Dropping Google webfont, using proxy webfont.
@@ -36,7 +37,7 @@
 
 ## QR code
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![](http://ww1.sinaimg.cn/large/0060lm7Tgy1fc8eyyn0msj305k05kglf.jpg)
+&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://github-blog-1302744225.cos.ap-chongqing.myqcloud.com/io.blog/mobile_qrcode.png" width="250px">
 
 ## How To Use
 
