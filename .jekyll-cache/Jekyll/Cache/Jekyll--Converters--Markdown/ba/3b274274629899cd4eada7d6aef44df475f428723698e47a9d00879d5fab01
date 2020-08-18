@@ -1,0 +1,74 @@
+I"�<p align="center">
+<img src="https://img.alicdn.com/tfs/TB1tkAjk5qAXuNjy1XdXXaYcVXa-200-236.png" width="100" />
+</p>
+
+<blockquote>
+  <p>GitHub 地址：<a href="https://github.com/alibaba/weex-ui">github.com/alibaba/weex-ui</a></p>
+</blockquote>
+
+<p>Weex Ui 于去年9月30日开源后，距离今天刚好半年时间，本文打算从 <strong>起源、定位、现状、发展、展望</strong>这5部分来给大家分享 Weex Ui 半年的开源之路。</p>
+
+<h3 id="weex-ui-的起源">Weex Ui 的起源</h3>
+
+<p>Weex Ui 起源于阿里内部的一个 Weex 上层 Ui 组件库，运行近一年后将其整理优化、丰富品质化后开源，希望借力社区，让其更好发展和服务更多开发者。
+<img src="https://gw.alipayobjects.com/zos/rmsportal/HbThsElNGBLMMRbbTxyx.jpeg" width="800" /></p>
+
+<h3 id="weex-ui-的定位">Weex Ui 的定位</h3>
+
+<p>Weex Ui 的定位为 <strong>一套轻量、富交互、高性能的 Weex 上层  Ui 组件库</strong>，通过上层 Vue 代码对组件进行 Native 级别优化的上层封装，友好支持 Weex iOS、Android、H5 基础环境，通过前端开箱即用的思想提供给开发者，同时通过 Weex Ui 代码让未接触 Weex 的同学对其编写有借鉴作用。</p>
+
+<p><a href="https://gw.alipayobjects.com/zos/rmsportal/MNIgWQQFnsXFVDgmXLrr.jpeg">二维码图片在这里»&gt;</a></p>
+
+<p><img src="https://img.alicdn.com/tfs/TB1T.M5h7OWBuNjSsppXXXPgpXa-1708-1218.png" width="800" /></p>
+
+<h3 id="weex-ui-的现状">Weex Ui 的现状</h3>
+<ul>
+  <li>7大类组件、共32个成熟组件</li>
+  <li>Github <strong>Star 2552</strong>、Fork 333、Watch 127</li>
+  <li>月下载量 <strong>9K/月</strong>，累计使用 <strong>47K</strong> 次 (包括 CNPM 2.8K/月和 20K 总量)</li>
+  <li>Issus 168，Pull Request 数为45，共 11 个 Contributors，累计发布 30 个版本</li>
+  <li>
+    <p>国内公司使用不完全统计</p>
+
+    <p><img src="https://img.alicdn.com/tfs/TB1Rz9dhCtYBeNjSspaXXaOOFXa-1576-318.png" width="500" /></p>
+  </li>
+  <li>
+    <p>给 Weex Ui 贡献代码的同学</p>
+
+    <p><img src="https://img.alicdn.com/tfs/TB1U8sghgmTBuNjy1XbXXaMrVXa-1800-196.png" width="600" /></p>
+  </li>
+</ul>
+
+<h3 id="weex-ui-的发展">Weex Ui 的发展</h3>
+
+<p><img src="https://img.alicdn.com/tfs/TB11tdshrGYBuNjy0FoXXciBFXa-2792-1884.png" width="800" /></p>
+
+<p>更多版本迭代可见 <a href="https://alibaba.github.io/weex-ui/#/cn/CHANGELOG">Weex Ui 升级日志</a></p>
+
+<h3 id="weex-ui-的展望">Weex Ui 的展望</h3>
+<ul>
+  <li>引入更多的<strong>富交互</strong>组件，让 Weex 应用 More Native</li>
+  <li>继续<strong>轻量化、简单化</strong> Weex Ui 的使用，降级非前端同学上手成本</li>
+  <li>组件<strong>性能的持续优化</strong>，尤其是低端机器性能提高</li>
+  <li>支持组件<strong>主题一键切换</strong>，正在实现中</li>
+  <li>汇集使用 Demo 的整理，包含工具类、媒体类、管理类等</li>
+  <li>生态化的探索，更多 Weex 周边的建设</li>
+</ul>
+
+<h3 id="最后">最后</h3>
+<p><strong>Weex Ui 的发展离不开社区的贡献，从开源以后也是慢慢除去阿里的特色，向社区化发展。</strong></p>
+
+<p>感谢每一个为 Weex Ui 提出建议和代码贡献的同学，尤其感谢社区<a href="https://github.com/zwwill">@zwwill</a>、<a href="https://github.com/GJJDD">@GJJDD</a>、<a href="https://github.com/Yanjiie">@Yanjiie</a>、<a href="https://github.com/zweipix">@zweipix</a> 等同学的付出。</p>
+
+<p>希望未来能有更多的同学加入到 Weex Ui 的开发中来，让大家可以快乐地使用 Weex Ui 提高效率早下班，同时促进他更好的发展。</p>
+
+<blockquote>
+  <p><strong>Please feel free to use and contribute to the development.</strong></p>
+</blockquote>
+
+<h3 id="其他链接">其他链接</h3>
+<ul>
+  <li><a href="https://alibaba.github.io/weex-ui/#/">Weex Ui 官网</a></li>
+  <li><a href="http://tw93.github.io/2018-01-21/weex-conf-weex-ui.html">Weex + Ui - Weex Conf 2018</a></li>
+</ul>
+:ET

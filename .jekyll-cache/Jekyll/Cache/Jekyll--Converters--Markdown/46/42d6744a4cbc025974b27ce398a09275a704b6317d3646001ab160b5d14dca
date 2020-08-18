@@ -1,0 +1,464 @@
+I"(�<p><img src="//blog.leeky.top/images/1-smaK057Fp29kcTJPN5DdCg%20%281%29.png" alt="" /></p>
+
+<p>原文来自：<a href="https://medium.com/javascript-inside/generators-and-channels-in-javascript-594f2cf9c16e#.pvgt62ocb">Generators and Channels in JavaScript</a></p>
+
+<h3 id="简介">简介</h3>
+<p>以下这篇文章是对Generator和Channel的一个介绍，如果你对Promise，Generator，Coroutine和Channel有过了解，可以直接跳到Using Generators and Channels with React这部分，接下来这些代码可能不能直接用于实际生产环境，但是它应该被看成一个起点，可以尝试把这种方案用在可以用到的地方。</p>
+
+<p>稍微花点时间看看这个listen函数。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">listen</span> <span class="o">=</span> <span class="p">(</span><span class="nx">el</span><span class="p">,</span> <span class="nx">type</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">ch</span> <span class="o">=</span> <span class="nx">chan</span><span class="p">()</span>
+  <span class="nx">el</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="nx">type</span><span class="p">,</span> <span class="nx">e</span> <span class="o">=&gt;</span> <span class="nx">putAsync</span><span class="p">(</span><span class="nx">ch</span><span class="p">,</span> <span class="nx">e</span><span class="p">))</span>
+  <span class="k">return</span> <span class="nx">ch</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>它会将每个在Dom元素上面的事件转换一个Channel，我们可以从这个基础点开始。</p>
+
+<h3 id="why-generators-and-channels">Why Generators and Channels?</h3>
+
+<p>在我们学习Generator，Coroutine和Channel之前，先了解下常规的Promise。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">getUsers</span><span class="p">()</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span> <span class="nx">reject</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+		<span class="nx">setTimeout</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+			<span class="nx">resolve</span><span class="p">({</span>
+				<span class="na">users</span><span class="p">:</span> <span class="p">[{</span>
+					<span class="na">id</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+					<span class="na">name</span><span class="p">:</span> <span class="dl">'</span><span class="s1">test</span><span class="dl">'</span>
+				<span class="p">}]</span>
+			<span class="p">})</span>
+		<span class="p">},</span> <span class="mi">1000</span><span class="p">)</span>
+	<span class="p">})</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>当getUsers函数成功时候会返回一个Promise对象，Promise的resolves会携带着必要的数据。同时我们能很好的处理超过一个Promise的情况，或者一个Promise依赖于另外一个Promise和一个操作需要所有的Promise一起运行才能解决问题的情况，以上这两种情况，其实标准的Promise实现就可以覆盖到。第一种链式情况可以使用Promise的then实现，后一种可以使用Promise.all来实现。</p>
+
+<p>Promise可以被看成是回调（回调地狱）的一种更加简洁的替换方案，假如你不清楚什么是回调地狱，可以看看下面的代码。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">asyncCallOne</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">asyncCallTwo</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="nx">asyncCallThree</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+            <span class="nx">asyncCallFour</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+                <span class="nx">asyncCallFive</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+                  <span class="c1">// do something here...</span>
+                <span class="p">})</span>
+            <span class="p">})</span>
+        <span class="p">})</span>
+    <span class="p">})</span>
+<span class="p">})</span></code></pre></figure>
+
+<p>当我们处理不是很复杂代码的时候用嵌套函数看起来还不错，但是嵌套代码不利于扩展和维护，这里有一种更好的方式从一开始就可以避免回调地狱，就是使用Promise，它可以有效地避免回调嵌套，还可以更好的处理异常。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">asyncCallOne</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="c1">// do some something... } )</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">asyncCallTwo</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">asyncCallThree</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">asyncCallFour</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">asyncCallFive</span><span class="p">)</span>
+    <span class="p">.</span><span class="k">catch</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="c1">// handle any errors that happened a long the way</span>
+    <span class="p">})</span></code></pre></figure>
+
+<p>在运行所有的异步函数后再来使用Then也是可以的。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nb">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span>
+     <span class="nx">asyncCallOne</span><span class="p">,</span>
+     <span class="nx">asyncCallTwo</span><span class="p">,</span>
+     <span class="nx">asyncCallThree</span>
+    <span class="p">]).</span><span class="nx">then</span><span class="p">(</span><span class="nx">values</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="c1">// do something with the values...</span>
+    <span class="p">});</span></code></pre></figure>
+
+<p>现在我们已经复习了一下Callback和Promise的基本用法，接下来可以介绍下ES6中的Generator。</p>
+
+<h3 id="generator">Generator</h3>
+<p>在我们讲what,why,how之前，我们可以先看看Generator简短定义。</p>
+
+<blockquote>
+  <p>“Generators are functions that can be paused and resumed, which enables a variety of applications.”</p>
+</blockquote>
+
+<p>(<a href="(http://www.2ality.com/2015/03/es6-generators.html)">http://www.2ality.com/2015/03/es6-generators.html</a>)</p>
+
+<p>为了快速的总结Generator，它们可以使我们通过调用在一个迭代器对象上面调用yield和通过next获取到值生成一个值的序列。</p>
+
+<p>这一小段很基础的代码可以用来示范怎么使用Generator。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span><span class="o">*</span> <span class="nx">getNumbers</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">yield</span> <span class="mi">1</span>
+  <span class="k">yield</span> <span class="mi">5</span>
+  <span class="k">yield</span> <span class="mi">10</span>
+<span class="p">}</span>
+<span class="c1">// retrieving</span>
+<span class="kd">const</span> <span class="nx">getThoseNumbers</span> <span class="o">=</span> <span class="nx">getNumbers</span><span class="p">()</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">getThoseNumbers</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value:1, done:false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">getThoseNumbers</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value:5, done:false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">getThoseNumbers</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value:10, done:false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">getThoseNumbers</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value:undefined, done:true}</span></code></pre></figure>
+
+<p>我们可以通过Generator来做迭代，也可以用它们用来observe数据，同时也很适合lazy evaluation和control flow。</p>
+
+<p>这儿有一组关于如何从Generator获取值的例子，最后一个还展示了如何通过reduce获取数据。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// iterate</span>
+<span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">i</span> <span class="k">of</span> <span class="nx">getNumbers</span><span class="p">())</span> <span class="p">{</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">i</span><span class="p">)</span> <span class="c1">// 1 5 10</span>
+<span class="p">}</span>
+<span class="c1">// destructering</span>
+<span class="kd">let</span> <span class="p">[</span><span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">,</span> <span class="nx">c</span><span class="p">]</span> <span class="o">=</span> <span class="nx">getNumbers</span><span class="p">()</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span> <span class="nx">a</span><span class="p">,</span> <span class="nx">b</span><span class="p">,</span> <span class="nx">c</span><span class="p">)</span> <span class="c1">// 1 5 10</span>
+<span class="c1">// spread operator</span>
+<span class="kd">let</span> <span class="nx">spreaded</span> <span class="o">=</span> <span class="p">[...</span><span class="nx">getNumbers</span><span class="p">()]</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">spreaded</span><span class="p">)</span> <span class="c1">// [1, 5, 10]</span>
+<span class="c1">// even works with reduce</span>
+<span class="c1">// Ramda reduce for example</span>
+<span class="kd">const</span> <span class="nx">reducing</span> <span class="o">=</span> <span class="nx">reduce</span><span class="p">((</span><span class="nx">xs</span><span class="p">,</span> <span class="nx">x</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">[...</span><span class="nx">xs</span><span class="p">,</span> <span class="nx">x</span><span class="p">],</span> <span class="p">[],</span> <span class="nx">getNumbers</span><span class="p">())</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">reducing</span><span class="p">)</span> <span class="c1">// [1, 5, 10]</span></code></pre></figure>
+
+<p>此外Generator可以让我们通过next传递数据，比较奇葩的是第一个next只会开启这个迭代，第二个next才可以取到正常的值，此例子可以很好说明地上面问题。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span><span class="o">*</span> <span class="nx">setGetNumbers</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">input</span> <span class="o">=</span> <span class="k">yield</span>
+    <span class="k">yield</span> <span class="nx">input</span>
+<span class="p">}</span>
+<span class="kd">const</span> <span class="nx">setThoseNumbers</span> <span class="o">=</span> <span class="nx">setGetNumbers</span><span class="p">()</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">setThoseNumbers</span><span class="p">.</span><span class="nx">next</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="c1">//{value:undefined, done:false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">setThoseNumbers</span><span class="p">.</span><span class="nx">next</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="c1">//{value: 2, done: false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">setThoseNumbers</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">//{value: undefined, done: true}</span></code></pre></figure>
+
+<p>从上面的输出我们可以看到，第一个next是可以忽略的，仅仅从第二个next开始考虑就好。</p>
+
+<p>终止一个Generator是很简单的，只需要在Generator里面定义一个return就好。同时，这里还有一个很好的特性，Generator函数可以调用其他的Generator函数。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span><span class="o">*</span> <span class="nx">callee</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">yield</span> <span class="mi">1</span>
+<span class="p">}</span>
+<span class="kd">function</span><span class="o">*</span> <span class="nx">caller</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">while</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">yield</span><span class="o">*</span> <span class="nx">callee</span><span class="p">();</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+<span class="kd">const</span> <span class="nx">callerCallee</span> <span class="o">=</span> <span class="nx">caller</span><span class="p">()</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">callerCallee</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value: 1, done: false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">callerCallee</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value: 1, done: false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">callerCallee</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value: 1, done: false}</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">callerCallee</span><span class="p">.</span><span class="nx">next</span><span class="p">())</span> <span class="c1">// {value: 1, done: false}</span></code></pre></figure>
+
+<p>现在大家应该对Generator有一个基础的理解了。
+关于ES6中Generator更详细的的介绍，可以阅读 <a href="https://medium.com/u/7fab51e62203">Axel Rauschmayer</a>这篇更全面的文章<a href="http://www.2ality.com/2015/03/es6-generators.html">ES6 Generators in depth</a>。</p>
+
+<h3 id="generator-promise-and-coroutine">Generator, Promise and Coroutine</h3>
+<p>现在我们已经基本了解Promise和Generator了，下面我们看看如何将这两者结合起来使用。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">fetchUsers</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span> <span class="nx">reject</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">setTimeout</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="nx">resolve</span><span class="p">({</span>
+        <span class="na">users</span><span class="p">:</span> <span class="p">[{</span><span class="na">id</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="na">title</span><span class="p">:</span> <span class="dl">'</span><span class="s1">test</span><span class="dl">'</span><span class="p">}]</span>
+      <span class="p">})</span>
+    <span class="p">},</span> <span class="mi">1000</span><span class="p">)</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+<span class="kd">function</span><span class="o">*</span> <span class="nx">getData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">data</span> <span class="o">=</span> <span class="k">yield</span> <span class="nx">fetchUsers</span><span class="p">()</span>
+  <span class="k">yield</span> <span class="nx">data</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>显而易见，我们需要一些机制来确保不用手动来运行循环。这就是Coroutine发挥作用的地方了，它们可以使我们写能够处理异步的行为，包括Promise,Thunk或者其它的operate，<a href="https://github.com/tj/co">co</a>就是处理这种情况的一个典型的库。</p>
+
+<p>接下来的代码是对co的一种很简单粗糙的实现，但是我们可以从这里看到co函数是怎么运行的。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">co</span><span class="p">(</span><span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">obj</span> <span class="o">=</span> <span class="nx">fn</span><span class="p">()</span>
+  <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span> <span class="nx">reject</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="kd">const</span> <span class="nx">run</span> <span class="o">=</span> <span class="nx">result</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="kd">const</span> <span class="p">{</span> <span class="nx">value</span><span class="p">,</span> <span class="nx">done</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">obj</span><span class="p">.</span><span class="nx">next</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span>
+      <span class="c1">// check if done and return if finished</span>
+      <span class="k">if</span> <span class="p">(</span><span class="nx">done</span><span class="p">)</span> <span class="k">return</span> <span class="nx">resolve</span><span class="p">(</span><span class="nx">result</span><span class="p">)</span>
+      <span class="c1">// retrieve the promise and call next with the result</span>
+      <span class="nx">value</span>
+        <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">res</span> <span class="o">=&gt;</span> <span class="nx">run</span><span class="p">(</span><span class="nx">res</span><span class="p">))</span>
+        <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">err</span> <span class="o">=&gt;</span> <span class="nx">obj</span><span class="p">.</span><span class="k">throw</span><span class="p">(</span><span class="nx">err</span><span class="p">))</span>
+    <span class="p">}</span>
+    <span class="c1">// start</span>
+    <span class="nx">run</span><span class="p">()</span>
+  <span class="p">})</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>接下来，我们使用简化co函数来实现之前fetch数据的那个例子。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">function</span> <span class="nx">fetchUsers</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span> <span class="nx">reject</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">setTimeout</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="nx">resolve</span><span class="p">({</span>
+        <span class="na">users</span><span class="p">:</span> <span class="p">[{</span><span class="na">id</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="na">name</span><span class="p">:</span> <span class="dl">'</span><span class="s1">test</span><span class="dl">'</span><span class="p">}]</span>
+      <span class="p">})</span>
+    <span class="p">},</span> <span class="mi">1000</span><span class="p">)</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="kd">function</span> <span class="nx">fetchOtherData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span> <span class="nx">reject</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">setTimeout</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="nx">resolve</span><span class="p">({</span>
+        <span class="na">other</span><span class="p">:</span> <span class="p">[{</span><span class="na">id</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="na">title</span><span class="p">:</span> <span class="dl">'</span><span class="s1">other data</span><span class="dl">'</span><span class="p">}]</span>
+      <span class="p">})</span>
+    <span class="p">},</span> <span class="mi">1000</span><span class="p">)</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="kd">const</span> <span class="kd">get</span> <span class="o">=</span> <span class="nx">co</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span> <span class="nx">getData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">getAll</span> <span class="o">=</span> <span class="k">yield</span> <span class="nb">Promise</span><span class="p">.</span><span class="nx">all</span><span class="p">([</span><span class="nx">fetchOtherData</span><span class="p">(),</span> <span class="nx">fetchUsers</span><span class="p">()])</span>
+  <span class="c1">// do something else...</span>
+  <span class="k">return</span> <span class="nx">getAll</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">data</span> <span class="o">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">))</span></code></pre></figure>
+
+<p>我们可以看到Coroutine能让我们写那种看起来是同步的代码来实现异步，如下</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="kd">get</span> <span class="o">=</span> <span class="nx">co</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span> <span class="nx">getData</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">otherData</span> <span class="o">=</span> <span class="k">yield</span> <span class="nx">fetchOtherData</span><span class="p">()</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">fetched other data: </span><span class="dl">'</span><span class="p">,</span> <span class="nx">otherData</span><span class="p">)</span>
+  <span class="kd">const</span> <span class="nx">users</span> <span class="o">=</span> <span class="k">yield</span> <span class="nx">fetchUsers</span><span class="p">(</span><span class="nx">otherData</span><span class="p">)</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">fetched users: </span><span class="dl">'</span><span class="p">,</span> <span class="nx">users</span><span class="p">)</span>
+  <span class="k">return</span> <span class="nx">users</span>
+<span class="p">}).</span><span class="nx">then</span><span class="p">(</span><span class="nx">data</span> <span class="o">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">))</span></code></pre></figure>
+
+<p>从上面我们可以看到，通过Coroutine这种方式可以用来合并Generator和Promise。这样看起来不错，其实还有一种更好的实现方案，就是使用Channel来合并Generator。</p>
+
+<h3 id="generator-and-channel">Generator and Channel</h3>
+
+<blockquote>
+  <p>Don’t combine Generators with Promises, combine them with Channels!   – David Nolen</p>
+</blockquote>
+
+<p><a href="http://swannodette.github.io/2013/08/24/es6-generators-and-csp">(http://swannodette.github.io/2013/08/24/es6-generators-and-csp)</a></p>
+
+<p>在之前所以处理异步的方法大家基本都知道（比如神奇的setTimeout），有趣的是channel像是事后才给js加上去的。Clojure 通过 core.async 以及 Go 通过 goroutines 已经对 channels 提供支持有一段时间了。</p>
+
+<p>这里有很多关于这方面的文章，其中最显著的一篇是James Longster的<a href="http://jlongster.com/Taming-the-Asynchronous-Beast-with-CSP-in-JavaScript">Taming the Asynchronous Beast with CSP Channels in JavaScript</a>这篇文章。通过这篇文章可以对Channel有一个更深的理解。</p>
+
+<p>这是我直接从James Longster那篇文章中摘抄的一句话：</p>
+
+<blockquote>
+  <p>Typically channels are useful for coordinating truly concurrent tasks that might run at the same time on separate threads. They are actually just as useful in a single-threaded environment because they solve a more general problem of coordinating anything asynchronous, which is everything in JavaScript.–James Longster</p>
+</blockquote>
+
+<p><a href="http://jlongster.com/Taming-the-Asynchronous-Beast-with-CSP-in-JavaScript">Taming the Asynchronous Beast with CSP in JavaScript</a></p>
+
+<p>当你阅读Channel这个词的时候，你也会经常会看到CSP ，它的意思是指Communicating Sequential Processes，我推荐读David Nolen的<a href="http://swannodette.github.io/2013/07/12/communicating-sequential-processes">Communicating Sequential Processes</a>这篇文章对CSP有一个更好的理解。</p>
+
+<p>我们将会使用<a href="https://github.com/ubolonton/js-csp">js-csp</a>这个库来演示使用Channel对我们到底有什么好处。</p>
+
+<p>通过Channel来进行进程通信，典型的Channel常常会提供一组函数，但是到目前为止，我们只需知道put和take的用法就好，入栈使用push，通过take有一个过程在另一边等待。很快我们将会看到更清晰的细节，首先我们需要考虑的是我们有一个channel和consumer，如下是js-csp文档中的简化版例子：</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">ch</span> <span class="o">=</span> <span class="nx">csp</span><span class="p">.</span><span class="nx">chan</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+<span class="k">yield</span> <span class="nx">csp</span><span class="p">.</span><span class="nx">put</span><span class="p">(</span><span class="nx">ch</span><span class="p">,</span> <span class="mi">42</span><span class="p">);</span>
+<span class="k">yield</span> <span class="nx">csp</span><span class="p">.</span><span class="nx">take</span><span class="p">(</span><span class="nx">ch</span><span class="p">);</span> <span class="c1">// 42</span>
+<span class="nx">ch</span><span class="p">.</span><span class="nx">close</span><span class="p">()</span>
+<span class="k">yield</span> <span class="nx">csp</span><span class="p">.</span><span class="nx">take</span><span class="p">(</span><span class="nx">ch</span><span class="p">);</span> <span class="c1">// csp.CLOSED</span></code></pre></figure>
+
+<p>我们可以创建一个缓冲区大小为1的Channel，接着我们通过前缀yield调用put，将42这个值传递到Channel。接着我们从Channel中take这个值并最后关闭Channel，在Channel已经关闭后，接下来yield不会产生影响。</p>
+
+<p>下面这个例子是直接从js-csp文档中拿过来的。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">var</span> <span class="nx">ch</span> <span class="o">=</span> <span class="nx">go</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span><span class="p">(</span><span class="nx">x</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">yield</span> <span class="nx">timeout</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nx">x</span><span class="p">;</span>
+<span class="p">},</span> <span class="p">[</span><span class="mi">42</span><span class="p">]);</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">((</span><span class="k">yield</span> <span class="nx">take</span><span class="p">(</span><span class="nx">ch</span><span class="p">)));</span></code></pre></figure>
+
+<p>通过调用go我们生成了一个Goroutine，它会立即返回一个Channel，使我们通过take从Channel获取任何值。</p>
+
+<p>为了了解这一切如何和UI相搭配，可以看看下面这个listen函数。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">listen</span> <span class="o">=</span> <span class="p">(</span><span class="nx">el</span><span class="p">,</span> <span class="nx">type</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">ch</span> <span class="o">=</span> <span class="nx">chan</span><span class="p">()</span>
+  <span class="nx">el</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="nx">type</span><span class="p">,</span> <span class="nx">e</span> <span class="o">=&gt;</span> <span class="nx">putAsync</span><span class="p">(</span><span class="nx">ch</span><span class="p">,</span> <span class="nx">e</span><span class="p">))</span>
+  <span class="k">return</span> <span class="nx">ch</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>我们可以通过使用listen将一个元素转换成channel。可以通过在channel上面使用take来监听所有的改动。无论我们在input框里面输入什么，我们可以通过channel获取到改动并更新到显示元素上。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">go</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">input</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="dl">'</span><span class="s1">title</span><span class="dl">'</span><span class="p">)</span>
+  <span class="kd">const</span> <span class="nx">display</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="dl">'</span><span class="s1">display</span><span class="dl">'</span><span class="p">)</span>
+  <span class="kd">const</span> <span class="nx">ch</span> <span class="o">=</span> <span class="nx">listen</span><span class="p">(</span><span class="nx">input</span><span class="p">,</span> <span class="dl">'</span><span class="s1">keyup</span><span class="dl">'</span><span class="p">)</span>
+  <span class="k">while</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">const</span> <span class="nx">e</span> <span class="o">=</span> <span class="k">yield</span> <span class="nx">take</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span>
+    <span class="nx">display</span><span class="p">.</span><span class="nx">innerHTML</span> <span class="o">=</span> <span class="s2">`From Input: </span><span class="p">${</span><span class="nx">e</span><span class="p">.</span><span class="nx">target</span><span class="p">.</span><span class="nx">value</span><span class="p">}</span><span class="s2">`</span>
+  <span class="p">}</span>
+<span class="p">})</span></code></pre></figure>
+
+<h3 id="using-generators-and-channels-with-react">Using Generators and Channels with React</h3>
+<p>到目前为止，已经将基础部分介绍完毕，同时对为什么Channel和Generator在Javascript中有意义有一个更深的理解，我们可以将学到Channel和Generator用到实际代码情景中。</p>
+
+<p>一个经典的例子就是计数器组件，虽然很基础，只能够增加和减少数字并将当前数字显示出来，但是通过这个可以帮助我们对React渲染Component获得更清晰的认识。</p>
+
+<p>你可以从 <a href="https://medium.com/u/749b96458fd8">Stefan Oestreicher</a>的<a href="https://github.com/steos/elmar.js/blob/master/src/examples/SimpleCounter.js">React/Elm-Architecturezh</a>中获得完整代码。</p>
+
+<p>AppStart用来处理顶层React Component的初始化渲染，和开启一个用来等待任何在AppChannel上的更新的Goroutine。</p>
+
+<p>AppChannel是一个没有任何缓冲或其他特殊性的函数。所以我们可以做的是一旦有一个event引发了一个action变化，我们在AppChannel使用put方法都获取到。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// basic example demonstrating the power of channels and generators</span>
+<span class="k">import</span> <span class="nx">React</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">react</span><span class="dl">'</span>
+<span class="k">import</span> <span class="p">{</span> <span class="nx">render</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">react-dom</span><span class="dl">'</span>
+<span class="k">import</span> <span class="p">{</span> <span class="nx">chan</span><span class="p">,</span> <span class="nx">go</span><span class="p">,</span> <span class="nx">take</span><span class="p">,</span> <span class="nx">put</span><span class="p">,</span> <span class="nx">putAsync</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">js-csp</span><span class="dl">'</span>
+<span class="k">import</span> <span class="p">{</span> <span class="nx">curry</span> <span class="p">}</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">ramda</span><span class="dl">'</span>
+<span class="k">import</span> <span class="nx">Counter</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">./Counter</span><span class="dl">'</span>
+<span class="c1">// helper</span>
+<span class="kd">const</span> <span class="nx">createRender</span> <span class="o">=</span> <span class="nx">curry</span><span class="p">((</span><span class="nx">node</span><span class="p">,</span> <span class="nx">app</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">render</span><span class="p">(</span><span class="nx">app</span><span class="p">,</span> <span class="nx">node</span><span class="p">))</span>
+<span class="c1">// create one channel for now</span>
+<span class="kd">const</span> <span class="nx">AppChannel</span> <span class="o">=</span> <span class="nx">chan</span><span class="p">()</span>
+<span class="kd">const</span> <span class="nx">doRender</span> <span class="o">=</span> <span class="nx">createRender</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="dl">'</span><span class="s1">mountNode</span><span class="dl">'</span><span class="p">))</span>
+<span class="c1">// let start</span>
+<span class="kd">const</span> <span class="nx">AppStart</span> <span class="o">=</span> <span class="p">({</span> <span class="nx">init</span><span class="p">,</span> <span class="nx">update</span><span class="p">,</span> <span class="nx">view</span> <span class="p">})</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="kd">let</span> <span class="nx">model</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="kd">const</span> <span class="nx">signal</span> <span class="o">=</span> <span class="nx">action</span> <span class="o">=&gt;</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="nx">model</span> <span class="o">=</span> <span class="nx">update</span><span class="p">(</span><span class="nx">action</span><span class="p">,</span> <span class="nx">model</span><span class="p">)</span>
+        <span class="nx">putAsync</span><span class="p">(</span><span class="nx">AppChannel</span><span class="p">,</span> <span class="nx">model</span><span class="p">)</span>
+    <span class="p">}</span>
+    <span class="c1">// initial render...</span>
+    <span class="nx">putAsync</span><span class="p">(</span><span class="nx">AppChannel</span><span class="p">,</span> <span class="nx">init</span><span class="p">(</span><span class="nx">model</span><span class="p">))</span>
+    <span class="nx">go</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span> <span class="p">()</span> <span class="p">{</span>
+        <span class="k">while</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">doRender</span><span class="p">(</span><span class="nx">view</span><span class="p">(</span><span class="nx">signal</span><span class="p">,</span> <span class="k">yield</span> <span class="nx">take</span><span class="p">(</span><span class="nx">AppChannel</span><span class="p">)))</span>
+        <span class="p">}</span>
+    <span class="p">})</span>
+<span class="p">}</span>
+<span class="c1">// start</span>
+<span class="nx">AppStart</span><span class="p">(</span><span class="nx">Counter</span><span class="p">)</span></code></pre></figure>
+
+<p>现在我们有一个基础的例子已经启动在运行中，还可以在上面做一些复杂的事情，例如fetch操作。我们可以创建一个简单列表，可以从其他资源地方fetch获取数据，一旦state发生变化后，重新渲染结果。为了完成此任务，同时为了更好的体验将传递一个loading信息给用户。</p>
+
+<p>上面这个需求，我们需要单独的处理Action和Channel，同时也需要在一个干净的、良好组织下的代码下处理其一些额外的情况。</p>
+
+<h4 id="building-the-app">Building the App…</h4>
+<p>实际上我们需要定义一个函数来处理fetch操作和通知loading什么时候开启和结束。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">getItems</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="nx">go</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="k">yield</span> <span class="nx">put</span><span class="p">(</span><span class="nx">isLoading</span><span class="p">,</span> <span class="kc">true</span><span class="p">)</span>
+    <span class="kd">const</span> <span class="nx">fetchedItems</span> <span class="o">=</span> <span class="k">yield</span><span class="o">*</span> <span class="nx">fetchItems</span><span class="p">()</span>
+    <span class="k">yield</span> <span class="nx">put</span><span class="p">(</span><span class="nx">items</span><span class="p">,</span> <span class="nx">fetchedItems</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="nx">put</span><span class="p">(</span><span class="nx">isLoading</span><span class="p">,</span> <span class="kc">false</span><span class="p">)</span>
+  <span class="p">})</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>编写一个创建Channel的函数。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">createChannel</span> <span class="o">=</span> <span class="p">(</span><span class="nx">action</span><span class="p">,</span> <span class="nx">store</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="kd">const</span> <span class="nx">ch</span> <span class="o">=</span> <span class="nx">chan</span><span class="p">()</span>
+  <span class="nx">go</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="k">while</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kd">const</span> <span class="nx">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="nx">take</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span>
+      <span class="k">yield</span> <span class="nx">put</span><span class="p">(</span><span class="nx">AppChannel</span><span class="p">,</span> <span class="nx">action</span><span class="p">(</span><span class="nx">store</span><span class="p">.</span><span class="kd">get</span><span class="p">(),</span> <span class="nx">value</span><span class="p">));</span>
+    <span class="p">}</span>
+  <span class="p">})</span>
+  <span class="k">return</span> <span class="nx">ch</span>
+<span class="p">}</span>
+
+<span class="c1">// helper function for passing an object and getting channels</span>
+<span class="kd">const</span> <span class="nx">createChannels</span> <span class="o">=</span> <span class="p">(</span><span class="nx">actions</span><span class="p">,</span> <span class="nx">store</span><span class="p">)</span> <span class="o">=&gt;</span>
+  <span class="nx">mapObjIndexed</span><span class="p">(</span><span class="nx">fn</span> <span class="o">=&gt;</span> <span class="nx">createChannel</span><span class="p">(</span><span class="nx">fn</span><span class="p">,</span> <span class="nx">store</span><span class="p">),</span> <span class="nx">actions</span><span class="p">)</span></code></pre></figure>
+
+<p>现在已经有createChannel了，我们还需定义一组Action。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">Actions</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="na">isLoading</span><span class="p">:</span> <span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">isLoading</span><span class="p">)</span> <span class="o">=&gt;</span>
+    <span class="nx">assoc</span><span class="p">(</span><span class="dl">'</span><span class="s1">isLoading</span><span class="dl">'</span><span class="p">,</span> <span class="nx">isLoading</span><span class="p">,</span> <span class="nx">model</span><span class="p">),</span>
+  <span class="na">items</span><span class="p">:</span> <span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">items</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">assoc</span><span class="p">(</span><span class="dl">'</span><span class="s1">items</span><span class="dl">'</span><span class="p">,</span> <span class="nx">items</span><span class="p">,</span> <span class="nx">model</span><span class="p">),</span>
+  <span class="na">addItem</span><span class="p">:</span> <span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">title</span><span class="p">)</span> <span class="o">=&gt;</span>
+    <span class="nx">assoc</span><span class="p">(</span><span class="dl">'</span><span class="s1">items</span><span class="dl">'</span><span class="p">,</span>
+      <span class="p">[</span> <span class="p">...</span><span class="nx">prop</span><span class="p">(</span><span class="dl">'</span><span class="s1">items</span><span class="dl">'</span><span class="p">,</span> <span class="nx">model</span><span class="p">),</span>
+        <span class="p">{</span><span class="nx">title</span><span class="p">,</span> <span class="na">id</span><span class="p">:</span> <span class="nx">getNextId</span><span class="p">(</span><span class="nx">prop</span><span class="p">(</span><span class="dl">'</span><span class="s1">items</span><span class="dl">'</span><span class="p">,</span> <span class="nx">model</span><span class="p">))}</span>
+      <span class="p">],</span>
+      <span class="nx">model</span><span class="p">),</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>接下来我们写App的Component部分，这里没什么特殊的，仅仅就是一个list和两个button和一个input，第一个button用于获取列表数据，另外一个用于添加文本到input里。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">App</span> <span class="o">=</span> <span class="p">({</span> <span class="nx">items</span><span class="p">,</span> <span class="nx">isLoading</span> <span class="p">})</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nx">isLoading</span><span class="p">)</span> <span class="k">return</span> <span class="p">(</span><span class="o">&lt;</span><span class="nx">p</span><span class="o">&gt;</span><span class="nx">loading</span><span class="p">...</span><span class="o">&lt;</span><span class="sr">/p&gt;</span><span class="err">)
+</span>  <span class="k">return</span> <span class="p">(</span>
+    <span class="o">&lt;</span><span class="nx">div</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="nx">h2</span><span class="o">&gt;</span><span class="nx">Random</span> <span class="nx">Items</span> <span class="nx">List</span><span class="o">&lt;</span><span class="sr">/h2</span><span class="err">&gt;
+</span>      <span class="o">&lt;</span><span class="nx">ul</span><span class="o">&gt;</span>
+        <span class="p">{</span><span class="nx">items</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">item</span> <span class="o">=&gt;</span> <span class="p">(</span>
+          <span class="o">&lt;</span><span class="nx">li</span> <span class="nx">key</span><span class="o">=</span><span class="p">{</span><span class="nx">item</span><span class="p">.</span><span class="nx">id</span><span class="p">}</span> <span class="o">&gt;</span><span class="p">{</span><span class="nx">item</span><span class="p">.</span><span class="nx">title</span><span class="p">}</span><span class="o">&lt;</span><span class="sr">/li</span><span class="err">&gt;
+</span>        <span class="p">))}</span>
+      <span class="o">&lt;</span><span class="sr">/ul</span><span class="err">&gt;
+</span>      <span class="o">&lt;</span><span class="nx">input</span> <span class="nx">type</span><span class="o">=</span><span class="dl">'</span><span class="s1">text</span><span class="dl">'</span> <span class="nx">id</span><span class="o">=</span><span class="dl">'</span><span class="s1">add</span><span class="dl">'</span> <span class="o">/&gt;</span>
+      <span class="o">&lt;</span><span class="nx">button</span> <span class="nx">onClick</span><span class="o">=</span><span class="p">{()</span> <span class="o">=&gt;</span> <span class="nx">putAsync</span><span class="p">(</span><span class="nx">addItem</span><span class="p">,</span> <span class="nx">findText</span><span class="p">())}</span><span class="o">&gt;</span>
+        <span class="nx">Add</span> <span class="nx">Item</span>
+      <span class="o">&lt;</span><span class="sr">/button</span><span class="err">&gt;
+</span>      <span class="o">&lt;</span><span class="nx">button</span> <span class="nx">onClick</span><span class="o">=</span><span class="p">{()</span> <span class="o">=&gt;</span> <span class="nx">getItems</span><span class="p">()}</span><span class="o">&gt;</span><span class="nx">LoadItems</span><span class="o">&lt;</span><span class="sr">/button</span><span class="err">&gt;
+</span>    <span class="o">&lt;</span><span class="sr">/div</span><span class="err">&gt;
+</span>  <span class="p">)</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>现在已经基本上写好了，类似于我们之前这样，创建一个AppStart函数，同时它还希望有一个component和一个类型store。store就是一个用于存放getter和setter的简单对象。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">AppStart</span> <span class="o">=</span> <span class="p">(</span><span class="nx">Component</span><span class="p">,</span> <span class="nx">store</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="c1">// initial render...</span>
+  <span class="nx">putAsync</span><span class="p">(</span><span class="nx">AppChannel</span><span class="p">,</span> <span class="nx">store</span><span class="p">.</span><span class="kd">get</span><span class="p">())</span>
+  <span class="nx">go</span><span class="p">(</span><span class="kd">function</span><span class="o">*</span> <span class="p">()</span> <span class="p">{</span>
+    <span class="k">while</span><span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">store</span><span class="p">.</span><span class="kd">set</span><span class="p">(</span><span class="k">yield</span> <span class="nx">take</span><span class="p">(</span><span class="nx">AppChannel</span><span class="p">))</span>
+      <span class="nx">doRender</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">Component</span> <span class="p">{...</span><span class="nx">store</span><span class="p">.</span><span class="kd">get</span><span class="p">()</span> <span class="p">}</span> <span class="sr">/&gt;</span><span class="err">)
+</span>    <span class="p">}</span>
+  <span class="p">})</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>现在我们需要做的是为先前定义的Actions创建我们的Channels。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="p">{</span> <span class="nx">isLoading</span><span class="p">,</span> <span class="nx">items</span><span class="p">,</span> <span class="nx">addItem</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">createChannels</span><span class="p">(</span><span class="nx">Actions</span><span class="p">,</span> <span class="nx">store</span><span class="p">)</span></code></pre></figure>
+
+<p>我们在return中获得一个isLoading，一个items和一个addItem的channel，现在我们可以通过channel来更新我们的状态，还有需要注意的是，AppChannel被称为一个只处理最新值的滑动缓冲。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// create App channel... and render function</span>
+<span class="kd">const</span> <span class="nx">AppChannel</span> <span class="o">=</span> <span class="nx">chan</span><span class="p">(</span><span class="nx">buffers</span><span class="p">.</span><span class="nx">sliding</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<span class="kd">const</span> <span class="nx">doRender</span> <span class="o">=</span> <span class="nx">createRender</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="dl">'</span><span class="s1">mountNode</span><span class="dl">'</span><span class="p">))</span></code></pre></figure>
+
+<p>最后我们只需要调用AppStart就好了。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">AppStart</span><span class="p">(</span><span class="nx">App</span><span class="p">,</span> <span class="nx">store</span><span class="p">)</span></code></pre></figure>
+
+<p>以上只是一个快速的案例来解释React怎么结合Channel一起使用，我们需要更多的时间来思考和验证这种方案怎么弄才对于我们有什么好处。</p>
+
+<p>通过之前那节中的listen函数，我们怎么将一个元素转换成一个Channel，从而抛砖引玉，引出其他的想法，包括对window的反应，改变你的App的结构，样式或布局。</p>
+
+<p>以上提供的例子可以看成一个使用该新特性可能性的新起点。</p>
+
+<h3 id="总结">总结</h3>
+<p>这是一篇介绍Generator和Channel的文章，我们任然缺少一些重要的部分，比如Transducer，接下来的文章将会覆盖Channels和Transducer，包括更多使用React的例子。</p>
+
+<h4 id="更新">更新</h4>
+<p>目前已经发布<a href="https://medium.com/javascript-inside/introduction-into-channels-and-transducers-in-javascript-a1dfd0a09268#.nfmcntwy7">Introduction into Channels and Transducers in JavaScript</a> 。</p>
+
+<h3 id="links">Links</h3>
+
+<p><a href="http://www.2ality.com/2015/03/es6-generators.html">ES6 Generators in depth</a></p>
+
+<p><a href="http://swannodette.github.io/2013/08/24/es6-generators-and-csp">ES6 Generators Deliver Go Style Concurrency</a></p>
+
+<p><a href="https://medium.com/@tjholowaychuk/callbacks-vs-coroutines-174f1fe66127#.ysrbpx5nb">Callbacks vs. Coroutines</a></p>
+
+<p><a href="https://github.com/ubolonton/js-csp">js-csp</a></p>
+
+<p><a href="http://jlongster.com/Taming-the-Asynchronous-Beast-with-CSP-in-JavaScript">Taming the Asynchronous Beast with CSP in JavaScript</a></p>
+
+<p><a href="http://calculist.org/blog/2011/12/14/why-coroutines-wont-work-on-the-web/">Why coroutines won’t work on the web</a></p>
+
+<p><a href="http://www.2ality.com/2015/03/no-promises.html">No promises: asynchronous JavaScript with only generators</a></p>
+
+<p><a href="http://phuu.net/2014/08/31/csp-and-transducers.html">CSP and transducers in JavaScript</a></p>
+
+<p><a href="https://github.com/clojure/core.async/">core.async</a></p>
+
+<p><a href="http://swannodette.github.io/2013/07/12/communicating-sequential-processes">Communicating Sequential Processes</a></p>
+
+<p><a href="http://swannodette.github.io/2013/07/31/extracting-processes">CSP is responsive design</a></p>
+
+<p><a href="http://jlongster.com/A-Study-on-Solving-Callbacks-with-JavaScript-Generators">A Study on Solving Callbacks with JavaScript Generators</a></p>
+:ET

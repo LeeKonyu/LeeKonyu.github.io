@@ -1,0 +1,285 @@
+I"�l<p><img data-src="https://gw.alipayobjects.com/zos/rmsportal/egMrezneoXbjpgPnjxNj.jpg" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" class="lazyload img-zoom" /></p>
+
+<p><small style="text-align:center">拍于沙巴红树林萤火虫</small></p>
+
+<h2 id="tltr">TL,TR</h2>
+
+<p>最近在对前端互动游戏技术一些学习和探索，恰逢上一个小游戏使用了 CreateJS 技术，借此文对其使用做一次备忘，同时让想用 CreateJS 写小游戏的同学可以快速上手。</p>
+
+<p>笔记基于最新1.0版本，有不少地方和网上老教程不一致，同时也建使用最新版本，主要内容如下：</p>
+
+<p><img src="https://img.alicdn.com/tfs/TB17tF4EKGSBuNjSspbXXciipXa-2228-1008.png" width="700" /></p>
+
+<h2 id="概况">概况</h2>
+<h3 id="简介">简介</h3>
+
+<p>CreateJS是基于HTML5开发的一套模块化的库和工具，基于这些库，可以非常快捷地开发出基于HTML5的游戏、动画和交互应用。</p>
+
+<p>历史可以追溯到7年前 flash 使用慢慢变少那个时代，gskinner 开发它作为“下一代”的富交互的工具库，Adobbe、微软、火狐官方资助的一个项目，API 在很多地方和 Flash 是很像，同时可以通过Adobe Animate CC（替代 flash）直接导出Canvas在Web中使用。</p>
+
+<p>在 18年 终于发布了 1.0 版本，同时官方正在开发 2.0 版本，相信不就会有一个更现代化的 Createjs 呈现给开发者。</p>
+
+<h3 id="模块组成">模块组成</h3>
+<p>CreateJS 提供的 4 个模块可以帮助处理游戏开发中常见操作：</p>
+<ul>
+  <li>EaselJS：用于位图、图形、Sprites、文本的绘制，还包含 Ticker 定时器</li>
+  <li>TweenJS：用来创建补间动画效果</li>
+  <li>PreloadJS：游戏资源的预加载和管理，包括图片、音频、json等资源</li>
+  <li>SoundJS：播放和处理音频</li>
+</ul>
+
+<h3 id="更好使用">更好使用</h3>
+<p>目前官方版本的 createjs 不支持通过 npm 方式的使用，导致在 ES6 开发中，需要在 html 中手动引入一个 <code class="language-plaintext highlighter-rouge">&lt;script&gt;</code> 标签才可以使用，对模块化开发不方便。</p>
+
+<p><a href="https://github.com/tw93/createjs-npm">createjs-npm</a> 通过 imports-loader、exports-loader 对官方库加了一层胶水，让大家可以向使用 npm 包方式一样使用，具体为：</p>
+
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>// 安装后和官方 createjs 1.0 使用一致
+npm <span class="nb">install </span>createjs-npm <span class="nt">-S</span>
+
+// 引入全部模块
+import createjs from <span class="s1">'createjs-npm'</span><span class="p">;</span>
+
+// 只引入单个模块（xx 可以是 easel、preload、tween、sound）
+import createjs from <span class="s1">'createjs-npm/lib/xx'</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h2 id="easeljs-的使用">EaselJS 的使用</h2>
+<p>EaselJS 在 Createjs 中承担 <strong>画</strong> 的能力，比如说你要画图片、画图形、画帧动画、画文字可以使用它的 API 实现。</p>
+
+<h3 id="步骤">步骤</h3>
+<p>比如说你需要在画一个红色的圆，必含步骤为<strong>创建舞台-&gt;创建对象-&gt;设置对象属性-&gt;添加对象到舞台-&gt;更新舞台呈现下一帧</strong>：</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="c1">//创建一个舞台，得到一个参考的画布</span>
+  <span class="kd">const</span> <span class="nx">stage</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Stage</span><span class="p">(</span><span class="dl">"</span><span class="s2">myCanvas</span><span class="dl">"</span><span class="p">);</span>
+  <span class="c1">//创建一个形状的显示对象</span>
+  <span class="kd">const</span> <span class="nx">circle</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Shape</span><span class="p">();</span>
+  <span class="nx">circle</span><span class="p">.</span><span class="nx">graphics</span><span class="p">.</span><span class="nx">beginFill</span><span class="p">(</span><span class="dl">"</span><span class="s2">red</span><span class="dl">"</span><span class="p">).</span><span class="nx">drawCircle</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">);</span>
+  <span class="c1">//形状实例的设置位置</span>
+  <span class="nx">circle</span><span class="p">.</span><span class="nx">x</span> <span class="o">=</span> <span class="nx">circle</span><span class="p">.</span><span class="nx">y</span> <span class="o">=</span> <span class="mi">50</span><span class="p">;</span>
+  <span class="c1">//添加形状实例到舞台显示列表</span>
+  <span class="nx">stage</span><span class="p">.</span><span class="nx">addChild</span><span class="p">(</span><span class="nx">circle</span><span class="p">);</span>
+  <span class="c1">//更新舞台将呈现下一帧</span>
+  <span class="nx">stage</span><span class="p">.</span><span class="nx">update</span><span class="p">();</span>
+</code></pre></div></div>
+
+<p>上述代码的效果为：</p>
+
+<p data-height="265" data-theme-id="dark" data-slug-hash="qyVprj" data-default-tab="result" data-user="tw93" data-pen-title="Demo" class="codepen">See the Pen <a href="https://codepen.io/tw93/pen/qyVprj/">Demo</a> by Tw93 (<a href="https://codepen.io/tw93">@tw93</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+<h3 id="graphics-类">Graphics 类</h3>
+<p>在上面Demo中，我们创建了一个 Shape，这里其实是创建了一块画布，同时假如需要在画布上面画东西，就需要使用Graphics类了。</p>
+
+<p>可以在 Graphics 上面设置很多样式，或者调用绘图方法来画其他的图形，同时Graphics类里的所有绘图方法都会返回一个graphics实例，这里使用链式操作会很方便，使用具体可见<a href="https://createjs.com/docs/easeljs/classes/Graphics.html">【EaselJS API】</a>。</p>
+
+<h3 id="easeljs-元素">EaselJS 元素</h3>
+<p>上面说过，EaselJS 可以用来画图片、图形、动画帧、文字这类型的元素，对应是 Bitmap、Shape、Sprite、Text 这几个。
+具体使用为：</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// 使用 Bitmap 来表示图片</span>
+<span class="kd">const</span> <span class="nx">bitmap</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Bitmap</span><span class="p">(</span><span class="dl">"</span><span class="s2">imagePath.jpg</span><span class="dl">"</span><span class="p">);</span>
+
+<span class="c1">// 使用 Shape 结合 Graphics 来表示图形</span>
+ <span class="kd">const</span> <span class="nx">shape</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Shape</span><span class="p">();</span>
+ <span class="nx">shape</span><span class="p">.</span><span class="nx">graphics</span><span class="p">.</span><span class="nx">beginFill</span><span class="p">(</span><span class="dl">"</span><span class="s2">#ff0000</span><span class="dl">"</span><span class="p">).</span><span class="nx">drawRect</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">);</span>
+ 
+<span class="c1">// 使用 Sprite 来表示精灵动画（后面详细介绍）</span>
+<span class="kd">const</span> <span class="nx">instance</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Sprite</span><span class="p">(</span><span class="nx">spriteSheet</span><span class="p">);</span>
+<span class="nx">instance</span><span class="p">.</span><span class="nx">gotoAndStop</span><span class="p">(</span><span class="dl">"</span><span class="s2">frameName</span><span class="dl">"</span><span class="p">);</span> 
+
+<span class="c1">// 使用 Text 来表示文字</span>
+<span class="kd">const</span> <span class="nx">text</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Text</span><span class="p">(</span><span class="dl">"</span><span class="s2">How are you</span><span class="dl">"</span><span class="p">,</span> <span class="dl">"</span><span class="s2">20px Arial</span><span class="dl">"</span><span class="p">,</span> <span class="dl">"</span><span class="s2">#000000</span><span class="dl">"</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h3 id="精灵动画">精灵动画</h3>
+<p>这个特性会让第一次接触的同学高兴起来，很方便使用，同时实现效果很棒，比如说需要实现一个绅士走路的样子：</p>
+
+<p data-height="309" data-theme-id="dark" data-slug-hash="yqavrz" data-default-tab="js,result" data-user="tw93" data-pen-title="Sprite" class="codepen">See the Pen <a href="https://codepen.io/tw93/pen/yqavrz/">Sprite</a> by Tw93 (<a href="https://codepen.io/tw93">@tw93</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+<p>【技巧】此处雪碧图的生成可以借助 <a href="https://www.codeandweb.com/texturepacker">TexturePacker</a>，其中有一个导出为 EaselJS 的选项，将值直接替换 SpriteSheet即可。</p>
+
+<p>上述代码应该能够很好的表达意思，可以试试animations中多设置几个动作，让其更有趣，更详细的使用可以参考 <a href="https://createjs.com/docs/easeljs/classes/SpriteSheet.html">SpriteSheet Class</a></p>
+
+<h3 id="ticker-刷新">Ticker 刷新</h3>
+
+<h4 id="主要作用">主要作用</h4>
+<p>上述人物的走动，就是靠 Ticker 来实时刷新舞台的，同时可以通过addEventListener来监听tick的刷新，并在里面”做些事情”。</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">createjs</span><span class="p">.</span><span class="nx">Ticker</span><span class="p">.</span><span class="nx">framerate</span> <span class="o">=</span> <span class="mi">60</span><span class="p">;</span>
+<span class="nx">createjs</span><span class="p">.</span><span class="nx">Ticker</span><span class="p">.</span><span class="nx">timingMode</span> <span class="o">=</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Ticker</span><span class="p">.</span><span class="nx">RAF_SYNCHED</span><span class="p">;</span>
+<span class="nx">sprite</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="dl">"</span><span class="s2">tick</span><span class="dl">"</span><span class="p">,</span> <span class="p">()</span><span class="o">=&gt;</span><span class="p">{</span><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">"</span><span class="s2">doing something</span><span class="dl">"</span><span class="p">});</span>
+</code></pre></div></div>
+<h4 id="关注点">关注点</h4>
+<p><strong>createjs.Ticker.framerate</strong> 表示 Ticker 帧频率，理想下是60FPS，这里在游戏体验优化时候可以设置到60。</p>
+
+<p><strong>createjs.Ticker.timingMode</strong> 表示 Ticker的渲染模式（setTimeout、requestAnimationFrame），可以这样选择：</p>
+<ul>
+  <li>TIMEOUT：默认模式，这种模式通过setTimeout方式来更新下一次，虽然提供了可预期的、灵活的帧率，但是在性能体验上比requestAnimationFrame方式要差很多，不建议使用</li>
+  <li>RAF：只单纯使用RAF，会将 framerate 设置的帧速率等值忽略，频率取决于当时运行环境和浏览器性能</li>
+  <li>RAF_SYNCHED：它会尝试去协调RAF和设置的framerate频率，相当于结合了setTimeout 和 RAF 的优点，也即这里可以设置framerate=60，优化让CreateJS 帮忙处理，建议使用这个模式</li>
+</ul>
+
+<h4 id="优化点">优化点</h4>
+<p>同时这里可以和<code class="language-plaintext highlighter-rouge">Ticker.paused</code>结合起来做性能优化，比如说我们在游戏暂停时候，可以这样防止不停刷新，类似这样：</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">createjs</span><span class="p">.</span><span class="nx">Ticker</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="dl">'</span><span class="s1">tick</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="o">!</span><span class="nx">e</span><span class="p">.</span><span class="nx">paused</span> <span class="o">&amp;&amp;</span> <span class="nx">stage</span><span class="p">.</span><span class="nx">update</span><span class="p">();</span>
+<span class="p">});</span>
+<span class="nx">createjs</span><span class="p">.</span><span class="nx">Ticker</span><span class="p">.</span><span class="nx">paused</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>  <span class="c1">//在任何地方调用这个，则会暂停tick里面的处理</span>
+<span class="nx">createjs</span><span class="p">.</span><span class="nx">Ticker</span><span class="p">.</span><span class="nx">paused</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>  <span class="c1">//在任何地方调用这个，则会恢复tick里面的处理</span>
+</code></pre></div></div>
+
+<p>在性能调优过程中，可以通过 <strong>createjs.Ticker.getMeasuredFPS()</strong> 将实时的帧率输出到屏幕，当这个值和设置的 framerate 很接近，说明性能良好</p>
+
+<h2 id="tweenjs-的使用">TweenJS 的使用</h2>
+<p>从上面可以看到，EaselJS 其实可以处理 CreateJS 开发中很多的事情，其他三项可以当做辅助工具，让开发更便捷。</p>
+
+<p>TweenJS 在这里充当着“动”的能力，同时它也可以单独使用，支持数字对象属性和CSS样式属性，是一个很强大的补间动画功能库。</p>
+
+<h3 id="案例">案例</h3>
+<p>比如说以下这个很经典的动画例子：</p>
+
+<p data-height="265" data-theme-id="dark" data-slug-hash="yqYXaL" data-default-tab="js,result" data-user="tw93" data-pen-title="TweenJS" class="codepen">See the Pen <a href="https://codepen.io/tw93/pen/yqYXaL/">TweenJS</a> by Tw93 (<a href="https://codepen.io/tw93">@tw93</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+<h3 id="使用">使用</h3>
+<p>可以看到链式处理让很多操作使用是很简单的，也即可以获取目标元素、设置等待时间、执行下一步动画、动画结束事件；</p>
+
+<p>一般场景用上面完全够用，还有如下高级特性，可以通过<a href="https://www.createjs.com/docs/tweenjs/modules/TweenJS.html">【文档】</a>来查询：</p>
+<ul>
+  <li>createjs.Ease：设置动画缓动效果，包含众多的动画Ease效果可用，如linear/bounceIn/circInOut/getBackIn/quadInOut</li>
+  <li>ColorPlugin：色值处理插件，可以处理任何 CSS 可支持的颜色</li>
+  <li>CSSPlugin：使用前需要<code class="language-plaintext highlighter-rouge">createjs.CSSPlugin.install();</code>注册，可以处理几大部分 CSS 中的样式</li>
+  <li>RotationPlugin：通过<code class="language-plaintext highlighter-rouge">RotationPlugin.install(props);</code>，用在处理角度问题</li>
+  <li>MotionGuidePlugin：引导动画效果，使用前需要<code class="language-plaintext highlighter-rouge">createjs.MotionGuidePlugin.install(createjs.Tween);
+</code>，通过设置一系列path来实现路径动画效果</li>
+  <li>Timeline: 用来处理多组动画效果，让他们可以一组一组地被控制</li>
+</ul>
+
+<h2 id="preloadjs-的使用">PreloadJS 的使用</h2>
+
+<p>PreloadJS是一个用来管理和协调相关资源加载的类库，它可以方便的帮助你预先加载相关资源。</p>
+
+<p>它主要是使用 LoadQueue 类来管理加载内容的，在游戏中很常见的场景是预加载图片资源和游戏音乐。</p>
+
+<h3 id="案例-1">案例</h3>
+<p>屏幕中可以看到处理后的图片加载出来，同时在播放着背景音乐：</p>
+
+<p data-height="265" data-theme-id="dark" data-slug-hash="LBpzKb" data-default-tab="js,result" data-user="tw93" data-pen-title="PreloadJS" data-preview="true" class="codepen">See the Pen <a href="https://codepen.io/tw93/pen/LBpzKb/">PreloadJS</a> by Tw93 (<a href="https://codepen.io/tw93">@tw93</a>) on <a href="https://codepen.io">CodePen</a>.</p>
+<script async src="https://static.codepen.io/assets/embed/ei.js"></script>
+
+<h3 id="使用-1">使用</h3>
+<h4 id="加载方式">加载方式</h4>
+<p>const queue = new createjs.LoadQueue(false);</p>
+
+<p>里面传入布尔值用来表明是用XHR还是用HTML标签来加载，默认为true，就是使用 XHR 来加载，但是XHR 加载 cdn 常常会报一些错误，也即推荐使用false类型，通过标签来加载。</p>
+
+<h4 id="资源加载和使用">资源加载和使用</h4>
+
+<p>通过 loadManifest 类可以加载一组游戏中用到的所有资源，包括 图片、音频、json、svg 等文件，id 用来加载完使用的标识，同时通过<code class="language-plaintext highlighter-rouge">queue.getResult(id)</code>获取。</p>
+
+<p>资源加载过程中，有complete、error、progress、fileload供订阅，完成后才可以对资源进行使用，progress和complete结合来显示进度条，fileload表示当个文件加载完毕</p>
+
+<h4 id="加载音乐">加载音乐</h4>
+<p>加载音乐时候需要注册 Sound 插件，也即<code class="language-plaintext highlighter-rouge">queue.installPlugin(createjs.Sound);</code>，同时指明音乐文件格式，比如说<code class="language-plaintext highlighter-rouge">createjs.Sound.alternateExtensions = ["mp3"];</code></p>
+
+<p>这里还有一个小坑，对于低版本的浏览器，可能会出现音乐不能播放情况，可以引入 HTMLAudioPlugin 解决：<code class="language-plaintext highlighter-rouge">createjs.Sound.registerPlugins([createjs.HTMLAudioPlugin])</code></p>
+
+<p>对于音乐播放，使用<code class="language-plaintext highlighter-rouge">createjs.Sound.play(id);</code>即可，详细使用后面 SoundJS 介绍。</p>
+
+<h2 id="soundjs-的使用">SoundJS 的使用</h2>
+<p>一个小游戏要想互动性比较好，背景音乐是必不可少少的，可以选择一些轻松活泼的，需要使用SoundJS来“放音乐”，同时具备完善的兼容处理。</p>
+
+<h3 id="sound-类">Sound 类</h3>
+<p>音频管理主要使用 Sound 类，有如下功能：</p>
+<ul>
+  <li>Sound.registerSound：注册播放的音频，registerSounds 支持多个音频，同时在音频播放前的需要提前注册（此处的加载其实也可用preload弄）,</li>
+  <li>Sound.registerPlugins：注册音频播放插件，一般用于不兼容的低浏览器场景，可以注册来兼容 WebAudioPlugin 或者 HTMLAudioPlugin</li>
+  <li>Sound.play: 播放音频，一般是<code class="language-plaintext highlighter-rouge">createjs.Sound.play(id)</code></li>
+</ul>
+
+<h3 id="abstractsoundinstance-播放实例类">AbstractSoundInstance 播放实例类</h3>
+<p>当我们调用 Sound.play API时候其实就创建了一个AbstractSoundInstance 类，创建好后，我们可以通过它来直接控制音频的播放或者其他操作，同时可以监听其播放状态：</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">const</span> <span class="nx">myInstance</span> <span class="o">=</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Sound</span><span class="p">.</span><span class="nx">play</span><span class="p">(</span><span class="dl">"</span><span class="s2">myAssetPath/mySrcFile.mp3</span><span class="dl">"</span><span class="p">);</span>
+
+<span class="c1">// 属性控制，实际中选择需要的属性设置就好</span>
+<span class="c1">// 属性同时以对象方式可以加到play第二个参数</span>
+<span class="nx">myInstance</span><span class="p">.</span><span class="nx">volume</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">;</span>
+<span class="nx">myInstance</span><span class="p">.</span><span class="nx">paused</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span> <span class="c1">// 控制音乐暂停否</span>
+<span class="nx">myInstance</span><span class="p">.</span><span class="nx">loop</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>  <span class="c1">// 循环播放</span>
+<span class="nx">myInstance</span><span class="p">.</span><span class="nx">duration</span> <span class="o">=</span> <span class="mi">30</span><span class="p">;</span>  <span class="c1">//播放时长</span>
+
+<span class="c1">// 监听状态，常用于错误时候，重新播放</span>
+<span class="nx">myInstance</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="dl">"</span><span class="s2">complete</span><span class="dl">"</span><span class="p">,</span> <span class="nx">handleComplete</span><span class="p">);</span>
+<span class="nx">myInstance</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="dl">"</span><span class="s2">loop</span><span class="dl">"</span><span class="p">,</span> <span class="nx">handleLoop</span><span class="p">);</span>
+<span class="nx">myInstance</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="dl">"</span><span class="s2">failed</span><span class="dl">"</span><span class="p">,</span> <span class="nx">handleFailed</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="性能体验优化">性能体验优化</h2>
+
+<h3 id="图片优化">图片优化</h3>
+<ul>
+  <li>图片大小和正常 H5 相比更加影响性能，尽量使用合适尺寸和通过 <a href="tinypng.com">tinypng</a> 压缩后的图片</li>
+  <li>对于精灵图或者很多小图场景，可用 <a href="https://www.codeandweb.com/texturepacker">TexturePacker</a>工具将他们合成一张雪碧图</li>
+  <li>对于帧动画的场景，可用<a href="https://github.com/gkajs/gka">gka</a> 工具对图片进行压缩和直接生成动画文件</li>
+</ul>
+
+<h3 id="善用回收机制">善用回收机制</h3>
+<ul>
+  <li>对于屏幕外或者不在舞台里面的需及时销毁</li>
+  <li>对于复杂的对象使用cache来增加性能，简单的尽量就不要用了，会有反作用</li>
+  <li><a href="https://createjs.com/docs/easeljs/classes/SpriteSheetBuilder.html">SpriteSheetBuilder</a> 的方式可以代替 cache，而且效果更好</li>
+</ul>
+
+<h3 id="多用位图少用矢量">多用位图少用矢量</h3>
+<ul>
+  <li>在 CreateJS 中矢量运算比较影响性能，奇怪是 Text shape都算矢量，建议此处直接将字和矢量图直接通过工具转成位图</li>
+  <li>如果某些项目必须用矢量，滤镜，叠加模式，或者含有非常多子元件，可以通过使用SpriteSheetBuilder进行位图渲染，从而优化</li>
+  <li>animateCC 中的遮罩相当于把整个动画序列帧化，矢量化，所以也尽量少用，如果实在要用，操作方法跟处理上面矢量一样</li>
+</ul>
+
+<h3 id="滤镜和动画场景优化">滤镜和动画场景优化</h3>
+<ul>
+  <li>不要使用滤镜特效比如（阴影滤镜和发光滤镜）来做动画，因为这样会非常耗费性能，在移动端上性能不可控</li>
+  <li>可以使用逐帧图片来代替相关滤镜特效来实现动画效果</li>
+</ul>
+
+<h3 id="减少嵌套和叠加">减少嵌套和叠加</h3>
+<ul>
+  <li>在做动画或者其他场景时候，尽量不要有太多容器的嵌套，尽量打平层级（有点点像写 Weex，讲究平和薄）</li>
+  <li>有些叠加的场景，可以直接用图片代替</li>
+</ul>
+
+<h3 id="帧率优化">帧率优化</h3>
+<ul>
+  <li>不用的帧率监听就及时取消，比如说 tick</li>
+  <li>使用 <code class="language-plaintext highlighter-rouge">createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED</code></li>
+  <li>将 <code class="language-plaintext highlighter-rouge">createjs.Ticker.framerate</code> 设置比预想高一点</li>
+  <li>通过<code class="language-plaintext highlighter-rouge">createjs.Ticker.getMeasuredFPS()</code> 输出实时FPS到屏幕，进行优化</li>
+</ul>
+
+<h3 id="试试-stagegl-神器">试试 StageGL 神器</h3>
+<ul>
+  <li><a href="https://createjs.com/docs/easeljs/classes/StageGL.html">StageGL</a> 在目前压缩版本没有引入，需要额外引入</li>
+  <li>使用起来和 Stage 差不多，相当于将原有的 Stage 改成 StageGL，但是相当于使用WebGl能力，性能会比原有的好太多，更多详细可见<a href="http://blog.createjs.com/getting-started-with-stagegl/">GETTING STARTED WITH STAGEGL</a></li>
+</ul>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code> <span class="c1">// 常规的2D场景</span>
+  <span class="kd">const</span> <span class="nx">stage</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Stage</span><span class="p">(</span><span class="dl">"</span><span class="s2">canvasId</span><span class="dl">"</span><span class="p">);</span>
+   
+  <span class="c1">// 使用 WebGl</span>
+  <span class="kd">const</span> <span class="nx">stage</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">StageGL</span><span class="p">(</span><span class="dl">"</span><span class="s2">canvasId</span><span class="dl">"</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h3 id="移动端点击事件优化">移动端点击事件优化</h3>
+<p>在我们游戏初始化时候，一般需要为之绑定点击事件，但是对于移动端来说加上这一句效果会好很多</p>
+
+<div class="language-js highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">var</span> <span class="nx">stage</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">createjs</span><span class="p">.</span><span class="nx">Stage</span><span class="p">(</span><span class="dl">"</span><span class="s2">canvasId</span><span class="dl">"</span><span class="p">);</span>
+<span class="nx">createjs</span><span class="p">.</span><span class="nx">Touch</span><span class="p">.</span><span class="nx">enable</span><span class="p">(</span><span class="nx">stage</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="结束">结束</h2>
+<p>CreateJS 的特性应该不止上述这些，更多的需要在实际项目中使用，通过各种游戏场景可以发掘很多有趣的使用，假如你也对 H5 互动小游戏开发有见解，欢迎一起交流。</p>
+:ET

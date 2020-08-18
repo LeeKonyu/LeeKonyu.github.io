@@ -1,0 +1,169 @@
+I"�I<p>原文来自：<a href="https://www.smashingmagazine.com/2015/03/better-browser-input-events/">Browser Input Events: Can We Do Better Than The Click?</a></p>
+
+<p>响应用户的输入可以说是我们做界面开发的核心。为了构建可响应的Web产品，理解触摸、鼠标、指针、键盘操作和浏览器的工作原理是解决问题的关键。你可能在手机浏览器中经历过<a href="http://ionicframework.com/blog/hybrid-apps-and-the-curse-of-the-300ms-delay/" target="_blank">300-millisecond delay</a>(300 ms延迟)或者<a href="https://docs.google.com/document/d/12k_LL_Ot9GjF8zGWP9eI_3IMbSizD72susba0frg44Y/" target="_blank">wrestled with touchmove versus scrolling</a>(触摸滚动导致页面卡顿)。</p>
+
+<p>在本文中，我们将介绍事件级联和使用这些知识来实现演示一个tap点击事件，支持多种输入方法但是又没有违反像Opera Mini这一类的代理浏览器规则。</p>
+
+<p><small>注：tap也翻译为点击，tap和click都是在点击时候触发，但在手机Web端click会有200~300ms延迟，为了避免歧义，下文将” tap event“翻译成“tap点击事件“</small></p>
+
+<h3 id="概况">概况</h3>
+<p>目前被用于与Web交互的3种主要的交互方式是：数字光标（鼠标）、触觉（直接触摸或者手写笔）、键盘。在JavaScript中我们可以通过<a href="http://www.w3.org/TR/touch-events/" target="_blank">触摸事件</a>,<a href="http://www.w3.org/TR/DOM-Level-2-Events/events.html#Events-eventgroupings-mouseevents" target="_blank">鼠标事件</a>,<a href="http://www.w3.org/TR/pointerevents/" target="_blank">指针事件</a>和<a href="http://www.w3.org/TR/2014/WD-DOM-Level-3-Events-20140925/#keys" target="_blank">键盘事件</a>来使用它们。在这篇文章中我们主要讨论触摸和基于鼠标的交互，虽然这里有键盘事件已经形成标准，如click和submit事件。</p>
+
+<p>你很有可能已经实现过鼠标和触摸事件的处理程序，在过去我们推荐的做法是这样：</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="cm">/** DO NOT EVER DO THIS! */</span>
+<span class="nx">$</span><span class="p">(</span><span class="dl">'</span><span class="s1">a</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="dl">'</span><span class="s1">ontouchstart</span><span class="dl">'</span> <span class="k">in</span> <span class="nb">window</span><span class="p">)?</span><span class="dl">'</span><span class="s1">touchend</span><span class="dl">'</span><span class="p">:</span><span class="dl">'</span><span class="s1">click</span><span class="dl">'</span><span class="p">,</span><span class="nx">handler</span><span class="p">);</span></code></pre></figure>
+
+<p>微软已经负责创建了一个更好的，更有前途的“指针事件”的事件模型规范。指针事件是一个抽象的输入机制,现在是W3C推荐标准。指针事件给用户代理(UA)带来灵活性，给一个事件系统提供丰富的输入机制。鼠标、触摸、手写笔是今天很容易想到的输入方式，但实现延伸到<a href="https://www.thalmic.com/en/myo/" target="_blank">myo</a>（肌）和<a href="http://logbar.jp/ring/en/" target="_blank">Ring</a>（环）也是可实现的。虽然Web开发者对这些似乎很兴奋，但并不是所有的浏览器开发者也会这样以为。就像苹果和谷歌现在就没有打算来实现指针事件。<br />
+谷歌的这个决定并不是他们最终的决定，但是目前在指针事件上没有活跃的工作。我们通过polyfills输入和使用指针事件和替代解决方案将成为等式的一部分，可能最终起决定作用。苹果在2012年发表申明反对指针事件，我现在没有从Safari的工程师那里得到任何公众回应。</p>
+
+<h3 id="事件级联">事件级联</h3>
+<p>当用户在移动设备上面tap点击一个元素时，浏览器会触发一系列事件：</p>
+
+<blockquote>
+  <p>touchstart → touchend → mouseover → mousemove → mousedown → mouseup → click</p>
+</blockquote>
+
+<p>这是由于Web的向后兼容性，指针事件采取的一种可替代方案来触发事件内联的兼容性：</p>
+
+<blockquote>
+  <p>mousemove → pointerover → mouseover → pointerdown → mousedown → gotpointercapture → pointerup → mouseup → lostpointercapture → pointerout → mouseout → focus → click</p>
+</blockquote>
+
+<p>事件规范允许用户代理们用不同的方式来实现兼容性的事件，Patrick Lauke和Peter-Paul Koch维护着关于这一主题的广泛的参考材料（资源链接位于文章底部）。
+ 以下图片显示下列行为的事件串：</p>
+
+<ol>
+  <li>首次tap点击一个元素,</li>
+  <li>第二次tap点击一个元素,</li>
+  <li>tap点击关闭元素,</li>
+</ol>
+
+<p>请注意：为了适应这个栈这个事件栈故意忽略了focus和blur事件。</p>
+
+<p><img src="http://tw93.github.io/images/01-ios-opt-small.png" alt="IOS Touch Events" />  <br />
+<small>在IOS设备上的tap点击一个元素两次和松开的事件级联</small>
+<br /><br />
+<img src="http://tw93.github.io/images/02-android-opt-small.png" alt="Android4.4 Touch Events" /> <br />
+<small>在 Android 4.4 设备上的tap点击一个元素两次和松开的事件级联</small>
+<br /><br />
+<img src="http://tw93.github.io/images/03-pointer-opt-small.png" alt="Android4.4 Touch Events" />  <br />
+<small>在Internet Explorer 11（在兼容的触摸事件实现）上tap点击元素两次然后松开的事件级联</small></p>
+
+<h3 id="应用事件级联">应用事件级联</h3>
+<p>由于浏览器工程师的工作，大多数现在建成的桌面网站“只是可以工作而已”。尽管级联看起来有点粗糙，但建立鼠标事件是我们以前通常工作的保守做法。<br />
+当然，300ms的延迟问题比起在滚动和touchmove和pointermove事件相互作用，还有浏览器渲染问题这些额外的问题更加臭名昭著。避免300 ms的延迟很容易，如果：</p>
+
+<ul>
+  <li>我们只为现代的Android和桌面端的Chrome优化，通过使用<meta name="viewport" content="width=device-width" />来启动禁用延迟这一功能。</li>
+  <li>我们只为IOS设备优化，用户有一个明确的点击，不是那种快速的点击或者长按，仅仅是一个元素良好的、正常的、明确的点击。</li>
+</ul>
+
+<p>如果我们的目标是建立一个能在用户体验和本地应用媲美的Web应用，那么我们需要减少交互响应的延迟。为了达到这个目标，我们需要在原始事件（如down,move,up）上创建我们属于自己的复合事件(click,double-click),当然我们还需要对本地事件的回退处理提供广泛和可行的支持。</p>
+
+<p>做这些需要不少的代码和知识。为了避免在浏览器中的300ms延迟，我们需要处理全部生命周期内的自我交互。对于一个给定｛类型｝的down事件，我们需要绑定所有必需的事件来完成这个功能，当交互已经完成后，我们需要清理自己解绑的起始事件。</p>
+
+<p>网站开发人员，你是唯一一个知道页面是否应该放大或另一个双击事件是否必须等待的人。如果只有你需要回调推迟你应该允许一个预定的动作来延迟。</p>
+
+<p>在接下来链接中，你会发现一个小的、相互间无依赖的tap事件Demo来创造一个多输入、低延迟的tap点击事件。Polymer-gestures是一个为tap点击和其他事件生产开发的库。尽管是这个名字有Polymer，但是它是不依赖Polymer库而且很容易被隔离。</p>
+
+<p>明确的说，实施这个从一开始来说就是一个坏主意，以下这些应该仅仅用于教育而不是用于生产环境。用于生产环境的库已经存在，例如：<a href="https://github.com/ftlabs/fastclick/" target="_blank"> FastClick</a>,<a href="https://github.com/Polymer/polymer-gestures" target="_blank">polymer-gestures</a>和<a href="http://hammerjs.github.io/" target="_blank">Hammer.js</a>。</p>
+
+<ul>
+  <li>Demo：<a href="https://github.com/Skookum/smashing-input-events/blob/gh-pages/taps.html" target="_blank">The tap event</a></li>
+  <li>Code:<a href="https://github.com/Skookum/smashing-input-events/blob/gh-pages/taps.js#L1" target="_blank">taps.js</a></li>
+</ul>
+
+<h3 id="重要部分">重要部分</h3>
+
+<p>在所有开始的地方绑定你的初始事件，这下面处理多输入的模式是被认为一种保险的方式。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="cm">/**
+ * If there are pointer events, let the platform handle the input 
+ * mechanism abstraction. If not, then it’s on you to handle 
+ * between mouse and touch events.
+ */</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="nx">hasPointer</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">tappable</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="nx">POINTER_DOWN</span><span class="p">,</span> <span class="nx">tapStart</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+  <span class="nx">clickable</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="nx">POINTER_DOWN</span><span class="p">,</span> <span class="nx">clickStart</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">else</span> <span class="p">{</span>
+  <span class="nx">tappable</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="dl">'</span><span class="s1">mousedown</span><span class="dl">'</span><span class="p">,</span> <span class="nx">tapStart</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+  <span class="nx">clickable</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="dl">'</span><span class="s1">mousedown</span><span class="dl">'</span><span class="p">,</span> <span class="nx">clickStart</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="nx">hasTouch</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">tappable</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="dl">'</span><span class="s1">touchstart</span><span class="dl">'</span><span class="p">,</span> <span class="nx">tapStart</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+    <span class="nx">clickable</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="dl">'</span><span class="s1">touchstart</span><span class="dl">'</span><span class="p">,</span> <span class="nx">clickStart</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">clickable</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="dl">'</span><span class="s1">click</span><span class="dl">'</span><span class="p">,</span> <span class="nx">clickEnd</span><span class="p">,</span> <span class="kc">false</span><span class="p">);</span></code></pre></figure>
+
+<p>绑定touch事件需要和渲染性能妥协，即使它们没有做任何事，但为了减少这种影响，通常推荐在处理程序开始时候绑定跟踪事件。别忘了在完成你的事件处理后要清理自己的环境和解绑跟踪事件。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="cm">/**
+ * On tapStart we want to bind our move and end events to detect 
+ * whether this is a “tap” action.
+ * @param {Event} event the browser event object
+ */</span>
+
+<span class="kd">function</span> <span class="nx">tapStart</span><span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// bind tracking events. “bindEventsFor” is a helper that automatically </span>
+  <span class="c1">// binds the appropriate pointer, touch or mouse events based on our </span>
+  <span class="c1">// current event type. Additionally, it saves the event target to give </span>
+  <span class="c1">// us similar behavior to pointer events’ “setPointerCapture” method.</span>
+
+  <span class="nx">bindEventsFor</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">type</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">target</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">event</span><span class="p">.</span><span class="nx">setPointerCapture</span> <span class="o">===</span> <span class="dl">'</span><span class="s1">function</span><span class="dl">'</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">event</span><span class="p">.</span><span class="nx">currentTarget</span><span class="p">.</span><span class="nx">setPointerCapture</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">pointerId</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// prevent the cascade</span>
+  <span class="nx">event</span><span class="p">.</span><span class="nx">preventDefault</span><span class="p">();</span>
+  
+  <span class="c1">// start our profiler to track time between events</span>
+  <span class="kd">set</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="dl">'</span><span class="s1">tapStart</span><span class="dl">'</span><span class="p">,</span> <span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">());</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ * tapEnd. Our work here is done. Let’s clean up our tracking events.
+ * @param {Element} target the html element
+ * @param {Event} event the browser event object
+ */</span>
+
+<span class="kd">function</span> <span class="nx">tapEnd</span><span class="p">(</span><span class="nx">target</span><span class="p">,</span> <span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">unbindEventsFor</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">type</span><span class="p">,</span> <span class="nx">target</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">_id</span> <span class="o">=</span> <span class="nx">idFor</span><span class="p">(</span><span class="nx">event</span><span class="p">);</span>
+  <span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">Tap</span><span class="dl">'</span><span class="p">,</span> <span class="nx">diff</span><span class="p">(</span><span class="kd">get</span><span class="p">(</span><span class="nx">_id</span><span class="p">,</span> <span class="dl">'</span><span class="s1">tapStart</span><span class="dl">'</span><span class="p">),</span> <span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">()));</span>
+  <span class="nx">setTimeout</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">delete</span> <span class="nx">events</span><span class="p">[</span><span class="nx">_id</span><span class="p">];</span>
+  <span class="p">});</span></code></pre></figure>
+
+<p>剩下的这些代码应该能够很好的自我解释，事实上，它有很多簿记，实现自定义手势要求你用浏览器事件系统来紧密合作。为了挽救你的受伤和心痛，不要在你自己的代码库里做事情。相反你应该建立或使用一个强大的抽象，例如<a href="http://hammerjs.github.io/" target="_blank">Hammer.js</a>,jQuery polyfill的<a href="https://github.com/jquery/PEP" target="_blank">Pointer Events</a>或者<a href="https://github.com/Polymer/polymer-gestures" target="_blank">polymer-gestures</a>。</p>
+
+<h3 id="总结">总结</h3>
+
+<p>一些曾经很清楚的事件现在却是有歧义的，以前click事件用来指有且只有一件事，但是现在在触摸屏上面需要辨别是双击、滚动或者其他操作系统的手势。</p>
+
+<p>好消息是，我们现在明白了很多用户的操作习惯和浏览器的响应之间的事件级联和相互作用，通过在工作中认识的原语，我们自己能够在我们的项目中为我们的用户和Web的未来做出更好的决策。</p>
+
+<p>你在构建多设备的网站时，有遇到什么意想不到的问题？你采取什么样的方法来解决Web上众多的交互模式？</p>
+
+<h3 id="参考链接">参考链接</h3>
+
+<ul>
+  <li><a href="http://arstechnica.com/information-technology/2015/02/pointer-events-finalized-but-apples-lack-of-support-still-a-deal-breaker/" target="_blank">“Pointer Events Finalized, But Apple’s Lack of Support Still a Deal Breaker,”</a>Peter Bright</li>
+  <li>Getting Touchy: An Introduction to Touch and Pointer Events,包括<a href="http://patrickhlauke.github.io/getting-touchy-presentation/" target="_blank">slides</a>和<a href="https://www.youtube.com/watch?v=QYLC8o3U_XY" target="_blank">talk</a> Patrick E. Lauke</li>
+  <li><a href="http://timkadlec.com/2015/02/apples-web/" target="_blank">“Apple’s Web?”</a> by Tim Kadlec</li>
+  <li><a href="http://timkadlec.com/2013/11/Avoiding-the-300ms-click-delay-accessibly/" target="_blank">“Avoiding the 300ms Click Delay, Accessibly,”</a> Tim Kadlec</li>
+  <li><a href="http://www.quirksmode.org/mobile/tapleTouch.html" target="_blank">“Touch taple,”</a> Peter-Paul Koch</li>
+  <li><a href="http://blogs.msdn.com/b/ie/archive/2014/09/05/making-the-web-just-work-with-any-input.aspx" target="_blank">“Making the Web ‘Just Work’ With Any Input: Mouse, Touch, and Pointer Events,”</a> Jacob Rossi</li>
+  <li><a href="https://github.com/ftlabs/fastclick" target="_blank">FastClick library</a></li>
+  <li><a href="http://hammerjs.github.io/" target="_blank">Hammer.js</a></li>
+  <li><a href="https://github.com/Polymer/polymer-gestures" target="_blank">polymer-gestures</a></li>
+  <li><a href="https://github.com/jquery/PEP" target="_blank">Pointer Events</a>jQuery polyfill</li>
+  <li><a href="https://developers.google.com/web/fundamentals/input/touch/touchevents/" target="_blank">“Implement Custom Gestures,”</a> Google Developers</li>
+</ul>
+:ET

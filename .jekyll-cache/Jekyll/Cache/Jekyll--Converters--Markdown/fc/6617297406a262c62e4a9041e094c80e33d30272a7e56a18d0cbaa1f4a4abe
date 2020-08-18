@@ -1,0 +1,138 @@
+I"�/<p><img data-src="http://img.alicdn.com/tfs/TB1qlHxPXXXXXaFaXXXXXXXXXXX-2880-1800.jpg" class="lazyload" /></p>
+
+<p>本周给部门同学分享了《Hello Weex》这个Topic，现整理成文字版本，分享给关注Weex的同学，主要涉及：</p>
+
+<ol>
+  <li>Module &amp;&amp; Component</li>
+  <li>Weex Architecture</li>
+  <li>Weex Others</li>
+</ol>
+
+<p><em>为了确保信息保密，已经将一些其他信息去除，请谅解，</em>分享开始 👨‍👨‍👧‍👧 🤣。</p>
+
+<h2 id="module--component"><strong>Module &amp;&amp; Component</strong></h2>
+
+<p>Module和Component相信有些同学区分不清楚，通过google搜索得到如下两个解释：</p>
+
+<blockquote>
+  <p>Module: An implementation unit of software that provides a coherent set of responsibilities.
+Component:A component is a reusable building block that can be combined with other components in the same or other computers in a distributed network to form an application.</p>
+</blockquote>
+
+<p><img data-src="http://img.alicdn.com/tfs/TB1T6zwPXXXXXa2aXXXXXXXXXXX-440-317.png" class="lazyload" /></p>
+
+<p>大致意思是说，Module是指提供一组连贯的职责的软件的实现单元；Component 是可重复使用的程序构建块，它可以与分布式网络中相同或其他计算机中的其他组件相结合，形成应用程序。</p>
+
+<p>以上的解释更加偏向计算机科学层面。</p>
+
+<p><a href="https://www.zhihu.com/people/3ec3b166992a5a90a1083945d2490d38">@贺师俊</a>在<a href="https://github.com/hax/hax.github.com/issues/21">关于前端开发中“模块”和“组件”概念的思考 · Issue #21 · hax/hax.github.com**</a>这篇文章归纳下大概是如下这样：</p>
+
+<p>Module是指编程语言所提供的代码组织机制，利用此机制可将程序拆解为独立且通用的代码单元。<strong>偏向静态的代码结构，Module更加强调职责</strong>。</p>
+
+<p>Component指功能单元，其意义偏向运行时的结构，并有更复杂的控制，<strong>核心意义在于复用</strong>，相对于Module对依赖性有更高的要求。</p>
+
+<p>那么在Weex中呢，Module和Component具体是什么呢？可以先看下Weex中Module和Component所包含的东西。</p>
+
+<p><strong>Module是一组能被JS Framework调用的API. 其中的一些能以异步的方式调用JS Framework。</strong></p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB10Qn_PXXXXXXFXXXXXXXXXXXX-1172-458.png" class="lazyload" /></p>
+
+<p><strong>Component是指在屏幕内可见，有特定行为，能被配置不同的属性和样式，能响应用户交互。</strong></p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1NvfQPXXXXXcLXFXXXXXXXXXX-1322-766.png" class="lazyload" /></p>
+
+<h2 id="weex-architecture"><strong>Weex Architecture</strong></h2>
+
+<p>官网是这样描述Weex为<em>“A framework for building Mobile cross-platform UI”，</em>一款轻量级的移动端跨平台动态性技术解决方案，其实说的通俗点就是Vue-Native 。🤔🤒</p>
+
+<p>相信对Weex有过关注的同学应该都见过下面这个Weex架构图。</p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1EITwPXXXXXaCaXXXXXXXXXXX-852-566.png" class="lazyload" /></p>
+
+<p>看图说话是这样的：</p>
+
+<ol>
+  <li>weex-toolkit中的transform工具将我们所编写的.we文件转换成JS Bundle，然后将JS Bundle部署到Server。</li>
+  <li>Weex SDK中的JS Framework获取到JS Bundle并执行，对其进行实例初始化工作，同时进行数据绑定、模板编译，同时提供 callNative 和 callJS 方法。</li>
+  <li>JS Framework和native通过callNative 和 callJS这两个方法进行通信，共同依赖于一份相同的JSON配置表（此次可以联想到RN的实现原理😉😉）</li>
+</ol>
+
+<p><strong>Transform所做的工作</strong>其实是将DSL转成类JSON树形结构，并汇总结合成一JavaScript AMD 模块，便于后续过程中JS Framework的处理，可以从如下图看到transform所做的工作：</p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1_hLfPXXXXXbgaVXXXXXXXXXX-2880-1800.jpg" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" class="lazyload img-zoom" /></p>
+
+<p>以上的左边部分其实就是一个DSL，一种领域特定语言，可以直接使用其对象领域中的概念，集中描述“想要做到什么”（What）的部分，而不必对“如何做到”（How）进行描述。</p>
+
+<blockquote>
+  <p>A domain-specific language (DSL) is a computer language specialized to a particular application domain.</p>
+</blockquote>
+
+<p><strong>JS Framework</strong> 初始化一个实例涉及如下过程，详细见<a href="https://link.zhihu.com/?target=https%3A//github.com/alibaba/weex/blob/master/html5/vanilla/index.js"><strong>vanilla/index.js</strong></a></p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1CjTtPXXXXXa0apXXXXXXXXXX-1268-630.png" class="lazyload" /></p>
+
+<p>看到这里的人一定是爱学习的…..</p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1Hc6BPXXXXXa1aXXXXXXXXXXX-400-361.png" class="lazyload" /></p>
+
+<h2 id="weex-others"><strong>Weex Others</strong></h2>
+
+<p><strong>1. Why not use scroller ？</strong></p>
+
+<p>为什么不推荐使用scroller呢？Native的同学肯定知道Android中的ScrollView和Ios中的UIScrollView这两个东西，详细看图：</p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1dgbFPXXXXXbDXVXXXXXXXXXX-1344-516.png" class="lazyload" /></p>
+
+<p>可以把scroller里面的东西想象成一个大的子View，如果列表过长，可想而知首屏的渲染完成和界面可操作需要等到将所有列表加载完成后才能使用，没有内存回收，无疑会对性能和体验造成一定影响。</p>
+
+<p><strong>2. Why use list ？</strong></p>
+
+<p>为什么要使用list呢？原因是此component只渲染可见区域，同时可以进行内存复用。</p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1ObPUPXXXXXasXFXXXXXXXXXX-1168-824.png" class="lazyload" /></p>
+
+<p>假如还是不是很好理解，可以看看Ios中UITableView的原理图：</p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1eSL4PXXXXXaPXXXXXXXXXXXX-1914-1485.jpg" class="lazyload" /></p>
+
+<p><strong>UItableView控件使用cell来展示数据。一个cell对应一个row，但是cell和row不完全相同。首先cell是一个view，cell的数量是由在某一刻可以看到的row（行）的数量决定的。当一行数据被往上移动移出屏幕不可见后，cell会被重复利用，接着用来展示新出现在屏幕中的那些行数据。</strong></p>
+
+<p>list只适合垂直长列表的滚动场景，但是假如需要使用横向滚动就必须使用scroller了。</p>
+
+<p><strong>3. Weex App</strong></p>
+
+<p>Weex现在也可以像RN那样生成APP了，详细可以见<a href="https:/github.com/weexteam/weex-hackernews"><strong>weexteam/weex-hackernews</strong></a>，以下是我的运行结果，真正做到了一份代码多处运行。</p>
+
+<p><img data-src="//img.alicdn.com/tfs/TB1cpfCPXXXXXbWaXXXXXXXXXXX-2822-1708.jpg" class="lazyload" /></p>
+
+<p><strong>4. Weex-x</strong></p>
+
+<p>写RN的人可能会嘲笑写Weex的，“看你怎么搞复杂数据管理的东西？👹👹”，RN的开发者可以通过Redux来实现state的良好管理，weex其实也可以的，试试<a href="https://link.zhihu.com/?target=https%3A//github.com/Jinjiang/weex-x"><strong>Jinjiang/weex-x</strong></a>吧，可以从如下的example中看到对于的数据流管理。</p>
+
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="p">{</span> <span class="nx">Store</span> <span class="p">}</span> <span class="k">in</span> <span class="dl">'</span><span class="s1">weex-x</span><span class="dl">'</span>
+<span class="kd">const</span> <span class="nx">store</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Store</span><span class="p">({</span>
+  <span class="na">state</span><span class="p">:</span> <span class="p">{</span> <span class="na">firstName</span><span class="p">:</span> <span class="dl">'</span><span class="s1">Jinjiang</span><span class="dl">'</span><span class="p">,</span> <span class="na">lastName</span><span class="p">:</span> <span class="dl">'</span><span class="s1">ZHAO</span><span class="dl">'</span> <span class="p">},</span>
+  <span class="na">getters</span><span class="p">:</span> <span class="p">{</span> <span class="na">fullName</span><span class="p">:</span> <span class="nx">state</span> <span class="o">=&gt;</span> <span class="s2">`</span><span class="p">${</span><span class="nx">state</span><span class="p">.</span><span class="nx">firstName</span><span class="p">}</span><span class="s2"> </span><span class="p">${</span><span class="nx">state</span><span class="p">.</span><span class="nx">lastName</span><span class="p">}</span><span class="s2">`</span> <span class="p">},</span>
+  <span class="na">mutations</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nx">setFirstName</span> <span class="p">(</span><span class="nx">state</span><span class="p">,</span> <span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">state</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">name</span>
+    <span class="p">},</span>
+    <span class="nx">setLastName</span> <span class="p">(</span><span class="nx">state</span><span class="p">,</span> <span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">state</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">name</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">()</span>
+    <span class="p">}</span>
+  <span class="p">},</span>
+  <span class="na">actions</span><span class="p">:</span> <span class="p">{</span>
+    <span class="na">setFirstName</span><span class="p">:</span> <span class="p">({</span> <span class="nx">commit</span> <span class="p">},</span> <span class="nx">payload</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">commit</span><span class="p">(</span><span class="dl">'</span><span class="s1">setFirstName</span><span class="dl">'</span><span class="p">,</span> <span class="nx">payload</span><span class="p">),</span>
+    <span class="na">setLastName</span><span class="p">:</span> <span class="p">({</span> <span class="nx">commit</span> <span class="p">},</span> <span class="nx">payload</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">commit</span><span class="p">(</span><span class="dl">'</span><span class="s1">setLastName</span><span class="dl">'</span><span class="p">,</span> <span class="nx">payload</span><span class="p">),</span>
+    <span class="nx">setFullName</span><span class="p">({</span> <span class="nx">commit</span> <span class="p">},</span> <span class="nx">payload</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kd">const</span> <span class="nx">result</span> <span class="o">=</span> <span class="nx">payload</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="dl">'</span><span class="s1"> </span><span class="dl">'</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="nx">commit</span><span class="p">(</span><span class="dl">'</span><span class="s1">setFirstName</span><span class="dl">'</span><span class="p">,</span> <span class="nx">result</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="nx">commit</span><span class="p">(</span><span class="dl">'</span><span class="s1">setLastName</span><span class="dl">'</span><span class="p">,</span> <span class="nx">result</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">})</span></code></pre></figure>
+
+<p><strong>5. Weex Vue 2.0</strong><strong>很期待……….</strong></p>
+
+<p><strong>完，有描述不对或者不清楚的地方欢迎大家指出。</strong></p>
+:ET
