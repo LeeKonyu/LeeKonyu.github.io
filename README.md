@@ -1,10 +1,10 @@
 ## [LeeKonyu.github.io](https://blog.leeky.top/ )
 
-- This is LeeKonyu's learning blog.
+- This is **LeeKonyu's learning blog**.
 - Commonly used to record learning and research back-end technology.
 - Concerned about the new technology and new thinking.
-- The blog theme named [cosy-jekyll-theme](https://rubygems.org/gems/cosy-jekyll-theme) is **created by [Tw93](http://tw93.github.io/about/)**.
-- The blog **fork from [Tw93](http://tw93.github.io/about/)**.
+- The blog theme named **[cosy-jekyll-theme](https://rubygems.org/gems/cosy-jekyll-theme) is created by[Tw93](https://github.com/tw93)**.
+- The blog fork from **[Tw93](https://github.com/tw93)**.
 
 ## Features
 
