@@ -1,13 +1,13 @@
 {
-  "name": "Tw93",
-  "author": "侑夕<tw93@qq.com>",
-  "homepage": "tw93.github.io",
+  "name": "LeeKonyu",
+  "author": "LeeKonyu<1104752335@qq.com>",
+  "homepage": "blog.leeky.top",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tw93/tw93.github.io"
+    "url": "https://github.com/LeeKonyu/LeeKonyu.github.io"
   },
   "bugs": {
-    "url": "https://github.com/tw93/tw93.github.io/issues"
+    "url": "https://github.com/LeeKonyu/LeeKonyu.github.io/issues"
   },
   "scripts": {
     "dev": "bundle exec jekyll serve --watch",
