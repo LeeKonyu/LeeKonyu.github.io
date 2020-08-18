@@ -1,0 +1,56 @@
+title:            LeeKonyu
+description:      "这里是技术博客。"
+
+github: LeeKonyu
+weibo: tw1118
+zhihu: tw93
+zhuanlan: tw1993
+disqus_shortname: tw93
+
+url: //blog.leeky.top
+menu:
+  - title: 'Categories'
+    url: '/categories'
+  - title: 'About'
+    url: '/about'
+  - title: 'Github'
+    url: 'https://github.com/LeeKonyu'
+
+timezone:    Africa/El_Aaiun
+locale:      zh_CN
+lang:      zh-cmn-Hans
+future:      true
+highlighter: rouge
+markdown:    kramdown
+sass:
+  sass_dir: _sass
+  style: compressed
+
+permalink:   /:year-:month-:day/:title.html
+assetUrl: //blog.leeky.top/images/
+defaultImage: data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
+
+
+
+google_analytics: UA-57207999-1
+baidu_verify: kxGpkpWG7G
+google_verify: DbapjTyfmMvvmkuA1GiGcXMqgPQrtgxeUTGY-MrEOYw
+
+paginate: 7
+post_ext: md
+page_ext: md
+post_layout: post
+page_layout: page
+titlecase: true
+
+showBuyCoffee: true
+payImage: //qpluspicture.oss-cn-beijing.aliyuncs.com/ruosWu/r1KYBg.jpg
+
+include: [".htaccess"]
+exclude: ["Gemfile", "Gemfile.lock", "README.md", "LICENSE", "package.json","node_modules"]
+gems:
+  - jekyll-paginate
+  - jekyll-sitemap
+  - jekyll-feed
+plugins: [jekyll-paginate,jekyll-sitemap,jekyll-feed]
+
