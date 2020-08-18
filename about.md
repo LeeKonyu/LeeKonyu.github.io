@@ -13,5 +13,5 @@ hideHomeActive: true
 
 * [Github](https://github.com/{{site.github}}){:target="_blank"}
 * [微博](http://weibo.com/6921061500){:target="_blank"}
-* [知乎](https://zhuanlan.zhihu.com/{{site.zhihu}}){:target="_blank"}
+* [知乎](https://zhihu.com/{{site.zhihu}}){:target="_blank"}
 
