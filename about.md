@@ -12,6 +12,6 @@ hideHomeActive: true
 ## Follow
 
 * [Github](https://github.com/{{site.github}}){:target="_blank"}
-* [微博](http://weibo.com/6921061500){:target="_blank"}
-* [知乎](https://zhihu.com/{{site.zhihu}}){:target="_blank"}
+* [微博](http://weibo.com/{{site.weibo}}){:target="_blank"}
+* [知乎](https://zhihu.com/people/{{site.zhihu}}){:target="_blank"}
 
