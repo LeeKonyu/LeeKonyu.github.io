@@ -53,5 +53,3 @@ gems:
   - jekyll-sitemap
   - jekyll-feed
 plugins: [jekyll-paginate,jekyll-sitemap,jekyll-feed]
-
-port: 6688

@@ -4,7 +4,7 @@
 - Commonly used to record learning and research back-end technology.
 - Concerned about the new technology and new thinking.
 - The blog theme named **[cosy-jekyll-theme](https://rubygems.org/gems/cosy-jekyll-theme) is created by[Tw93](https://github.com/tw93)**.
-- The blog fork from **[Tw93](https://github.com/tw93)**.
+- The blog design from **[Tw93](https://github.com/tw93)**.
 
 ## Features
 
@@ -54,7 +54,7 @@
 ## Support
 
 - **The blog theme named [cosy-jekyll-theme](https://rubygems.org/gems/cosy-jekyll-theme) is created by[Tw93](https://github.com/tw93).**
-- **The blog fork from [Tw93](https://github.com/tw93).**
+- **The blog design from [Tw93](https://github.com/tw93).**
 - **Feel free to fork.** 
 - Give it **a Star** if you like, fork or just clone to use.
 - Having a problem getting something to work or want to know why I setup something in a certain way? [File a GitHub Issue](https://github.com/tw93/tw93.github.io/issues/new).
