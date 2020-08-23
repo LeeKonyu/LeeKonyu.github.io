@@ -27,7 +27,7 @@
 
 ## [PC Preview](https://blog.leeky.top/)
 
-![demo.png](https://github-blog-1302744225.cos.ap-chongqing.myqcloud.com/io.blog/pc_view.png)
+![demo.png]( )
 
 ## H5 Preview
 
